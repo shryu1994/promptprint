@@ -14,9 +14,9 @@ __pycache__/
 *.pyc
 *.pyo
 .preview/
-# .claude/ — settings.json·hooks 는 추적(federation 행동규칙 wiring), machine 파일만 제외
-.claude/launch.json
-.claude/settings.local.json
+# 운영자 로컬 dev 머신 — 공개 레포에 OS 내부 안 커밋 (행동규칙은 AGENTS.md·CLAUDE.md 만 tracked)
+.claude/
+.brain/
 
 # 로컬 전용 문서·작업 노트 (배포 제외)
 docs/

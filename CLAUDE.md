@@ -1,6 +1,5 @@
 @AGENTS.md
 
-이 레포 = product-runtime (Promptprint). 방법은 공유 canon 참조(포크 금지), 제품 델타는 `AGENTS.md`.
-매 세션 anchor: `.brain/work/now.md` + `.brain/work/runs/INDEX.md` 마지막 줄 + canon Read Order.
-**privacy-core**: 사용자 프롬프트 로그 read-only · 산출물(aggregates/insights/report) commit 금지 · 네트워크 0.
-push·배포·마켓 발행·네트워크 도입 = founder 단독 (`AGENTS.md` §Gates).
+이 레포 = Promptprint (질문 로그 → 전문성 성장 리포트, 100% 로컬·무네트워크·오픈소스). 규칙은 `AGENTS.md`.
+**privacy-core**: 프롬프트 로그 read-only · 산출물(aggregates/insights/report) commit 금지 · 네트워크 0.
+push·발행·배포·네트워크 도입 = 사람 승인 (`AGENTS.md` §Gates).
