@@ -21,7 +21,7 @@ def _valid():
         ],
         "cards": [
             {"headline": "+213%", "stat": "더 깊은 질문", "caption": "작년 대비"},
-            {"headline": "7,562", "stat": "총 질문", "caption": "3개월"},
+            {"headline": "1,234", "stat": "총 질문", "caption": "3개월"},
             {"headline": "docker", "stat": "졸업한 주제", "caption": "더는 묻지 않음"},
         ],
         "next_bearings": [

@@ -20,7 +20,7 @@ def run_aggregate(roots_by_tool: Optional[Dict[str, List[str]]], out_path: str) 
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(prog="wami", description="where-am-i: 질문 로그 추출·집계")
+    p = argparse.ArgumentParser(prog="wami", description="Promptprint: 질문 로그 추출·집계")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     pa = sub.add_parser("aggregate", help="로그를 집계해 aggregates.json 생성")

@@ -94,7 +94,3 @@ logs → adapters → deterministic aggregation → host-LLM interpretation → 
 ## License
 
 MIT © 2026 shryu
-
----
-
-*Internal note: the analysis package under `scripts/wami/` is the deterministic engine; everything user-facing is "Promptprint".*

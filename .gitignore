@@ -16,6 +16,5 @@ __pycache__/
 .preview/
 .claude/
 
-# 내부 기획·전략 문서 (비공개 — 배포 산출물에서 제외)
-docs/marketing-launch-strategy.md
-docs/superpowers/
+# 로컬 전용 문서·작업 노트 (배포 제외)
+docs/
