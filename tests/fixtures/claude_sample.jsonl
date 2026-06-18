@@ -1,0 +1,6 @@
+{"type":"user","sessionId":"s1","timestamp":"2026-01-05T10:00:00.000Z","cwd":"/home/u/projA","gitBranch":"main","message":{"role":"user","content":"how do I cache results in python?"}}
+{"type":"assistant","sessionId":"s1","timestamp":"2026-01-05T10:00:05.000Z","message":{"role":"assistant","content":[{"type":"text","text":"use functools.lru_cache"}]}}
+{"type":"user","sessionId":"s1","timestamp":"2026-01-05T10:01:00.000Z","cwd":"/home/u/projA","message":{"role":"user","content":[{"type":"tool_result","content":"ok"}]}}
+{"type":"user","sessionId":"s1","timestamp":"2026-01-05T10:02:00.000Z","cwd":"/home/u/projA","message":{"role":"user","content":[{"type":"text","text":"<command-name>commit</command-name>"}]}}
+{"type":"user","sessionId":"s2","timestamp":"2026-02-10T09:00:00.000Z","cwd":"/home/u/projB","message":{"role":"user","content":[{"type":"text","text":"why is lru_cache faster than a manual dict?"}]}}
+{"type":"user","sessionId":"s2","timestamp":"2026-02-10T09:05:00.000Z","cwd":"/home/u/projB","message":{"role":"user","content":"<system-reminder>noise</system-reminder>"}}

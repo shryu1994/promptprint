@@ -1,0 +1,76 @@
+import unittest
+import tests.conftest_path  # noqa: F401
+from wami import textutil as T
+
+
+class NormTsTest(unittest.TestCase):
+    def test_fractional_offset(self):
+        """Python 3.10 fromisoformat が拒否するパターン: fractional + offset."""
+        result = T.norm_ts("2026-04-06T14:16:32.334000+00:00")
+        self.assertTrue(result, "norm_ts should return non-empty string")
+        self.assertTrue(result.startswith("2026-04-06T14:16:32"))
+
+    def test_z_suffix_fractional(self):
+        result = T.norm_ts("2026-01-05T10:00:00.000Z")
+        self.assertTrue(result, "norm_ts should return non-empty string")
+        self.assertTrue(result.startswith("2026-01-05T10:00:00"))
+
+    def test_garbage(self):
+        self.assertEqual(T.norm_ts("garbage"), "")
+
+
+class TextUtilTest(unittest.TestCase):
+    def test_is_noise_markers(self):
+        self.assertTrue(T.is_noise("<command-name>foo</command-name>"))
+        self.assertTrue(T.is_noise("<system-reminder>x"))
+        self.assertTrue(T.is_noise("<local-command-stdout>"))
+        self.assertTrue(T.is_noise("[Request interrupted by user]"))
+        self.assertTrue(T.is_noise("   "))            # 공백뿐
+        self.assertFalse(T.is_noise("why is X faster than Y?"))
+        self.assertFalse(T.is_noise("이 설계 비판해줘"))
+        # 실제 질문이 <tag>로 시작하더라도 노이즈가 아님 (false-positive 방지)
+        self.assertFalse(T.is_noise("<div> 이 태그 왜 안 닫히나요?"))
+        self.assertFalse(T.is_noise("<MyComponent> 컴포넌트 리뷰해줘"))
+        # Task 13 real-data: 실제 로그에서 확인된 시스템 주입 태그
+        self.assertTrue(T.is_noise("<task-notification>done</task-notification>"))
+        self.assertTrue(T.is_noise("<environment_context>...</environment_context>"))
+        self.assertTrue(T.is_noise("<subagent_notification>running</subagent_notification>"))
+        self.assertTrue(T.is_noise("<task>some system task</task>"))
+
+    def test_has_code_block(self):
+        self.assertTrue(T.has_code_block("see this:\n```py\nx=1\n```"))
+        self.assertFalse(T.has_code_block("no code here"))
+
+    def test_tokens_lowercase_and_stopwords(self):
+        toks = T.tokens("Why is the Cache Faster? 왜 캐시가 빠른가")
+        self.assertIn("cache", toks)
+        self.assertIn("faster", toks)
+        self.assertIn("캐시가", toks)
+        self.assertNotIn("the", toks)   # 영어 불용어 제거
+        self.assertNotIn("is", toks)
+
+    def test_metaskill_signals(self):
+        sig = T.metaskill_signals("이거 비판해주고 정말 맞는지 검증해줘")
+        self.assertGreaterEqual(sig["critique"], 1)
+        self.assertGreaterEqual(sig["verify"], 1)
+        sig2 = T.metaskill_signals("just do it")
+        self.assertEqual(sig2["critique"], 0)
+
+    def test_metaskill_delegate(self):
+        sig = T.metaskill_signals("네가 알아서 추천해줘")
+        self.assertGreaterEqual(sig["delegate"], 1)
+        # plain question should not trigger delegate
+        plain = T.metaskill_signals("how do I print in python")
+        self.assertEqual(plain["delegate"], 0)
+
+    def test_metaskill_counter(self):
+        sig = T.metaskill_signals("왜 안 되는지 근거를 줘")
+        self.assertGreaterEqual(sig["counter"], 1)
+        # plain question should not trigger counter
+        plain = T.metaskill_signals("how do I print in python")
+        self.assertEqual(plain["counter"], 0)
+
+    def test_is_multistep(self):
+        self.assertTrue(T.is_multistep("1. do a\n2. do b\n3. do c"))
+        self.assertTrue(T.is_multistep("먼저 A 하고 그다음 B 해줘"))
+        self.assertFalse(T.is_multistep("just one thing"))

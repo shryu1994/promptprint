@@ -1,0 +1,10 @@
+{
+  "meta": {"total_questions": 12, "by_tool": {"claude": 8, "codex": 4}, "date_range": ["2026-04-01T00:00:00+00:00", "2026-06-01T00:00:00+00:00"]},
+  "activity": {"by_month": {"2026-04": 3, "2026-05": 4, "2026-06": 5}, "by_hour": {"09": 4, "14": 8}},
+  "shape": {"total": 12, "length_buckets": {"xs": 2, "s": 3, "m": 4, "l": 3}, "code_block_count": 5, "multistep_count": 3, "avg_len_by_month": {"2026-04": 40.0, "2026-05": 120.0, "2026-06": 300.0}},
+  "topics": {"top_terms": [{"term": "docker", "count": 4}, {"term": "kubernetes", "count": 3}, {"term": "cache", "count": 2}], "term_timeline": {"docker": {"2026-04": 4}, "kubernetes": {"2026-06": 3}, "cache": {"2026-05": 2}}},
+  "metaskill": {"totals": {"critique": 3, "verify": 5, "delegate": 2, "counter": 4}, "by_month": {"2026-04": {"verify": 1}, "2026-05": {"critique": 2, "counter": 2}, "2026-06": {"critique": 1, "counter": 2, "verify": 4}}},
+  "mastery": {"topic_lifespan": [{"term": "docker", "count": 4, "first": "2026-04", "last": "2026-04", "active": false}, {"term": "kubernetes", "count": 3, "first": "2026-06", "last": "2026-06", "active": false}]},
+  "tool_compare": {"claude": {"count": 8, "avg_len": 180.0, "code_block_rate": 0.5}, "codex": {"count": 4, "avg_len": 90.0, "code_block_rate": 0.25}},
+  "samples": {"stratified": [{"ts": "2026-04-01T00:00:00+00:00", "tool": "claude", "session_id": "s1", "project": "p", "text": "how do I run docker?", "turn_idx": 0}, {"ts": "2026-06-01T00:00:00+00:00", "tool": "claude", "session_id": "s2", "project": "p", "text": "why is kubernetes ingress slower than a direct service, and what are the tradeoffs?", "turn_idx": 0}]}
+}

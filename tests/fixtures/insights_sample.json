@@ -1,0 +1,107 @@
+{
+  "schema_version": "1",
+  "headline": "절차를 묻던 질문이 트레이드오프를 따지는 설계 질문으로 진화했다",
+  "summary": "3개월(2026-04~06) 동안 12개의 질문이 기록됐다. 초기에는 'how do I run docker?'처럼 사용법을 묻는 짧은 질문(4월 평균 40자)이 주를 이뤘지만, 6월에는 'why is kubernetes ingress slower … what are the tradeoffs?'처럼 원리와 트레이드오프를 파고드는 긴 질문(6월 평균 300자)이 등장했다. 메타스킬 측면에서는 verify(5회)·counter(4회)가 두드러져, 단순 수용보다 검증·반론을 즐기는 방향으로 성숙해 가고 있음을 보여준다.",
+  "dimensions": {
+    "topic_evolution": {
+      "narrative": "docker가 4월에 집중적으로 등장한 뒤 사라지고, kubernetes가 6월에 새로 등장했다. 주제 지형이 컨테이너 기초에서 오케스트레이션 계층으로 이동하고 있다.",
+      "evidence": [
+        "docker: 2026-04에 4회 등장 후 이후 월에 0회",
+        "kubernetes: 2026-06에 3회 신규 등장",
+        "cache: 2026-05에 2회 등장(중간 계층 관심)"
+      ]
+    },
+    "depth": {
+      "narrative": "질문 길이가 4월 평균 40자에서 6월 300자로 7.5배 증가했다. 초기의 how 질문('how do I run docker?')이 later의 why+tradeoff 질문('why is kubernetes ingress slower … what are the tradeoffs?')으로 전환됐다.",
+      "evidence": [
+        "avg_len_by_month: 2026-04=40.0 → 2026-05=120.0 → 2026-06=300.0 (7.5배 증가)",
+        "샘플: 'how do I run docker?' (4월, 절차형) vs 'why is kubernetes ingress slower than a direct service, and what are the tradeoffs?' (6월, 원리+트레이드오프형)"
+      ]
+    },
+    "metaskill": {
+      "narrative": "verify(5회)와 counter(4회)가 critique(3회), delegate(2회)보다 많다. 6월에는 verify가 4회로 급증해 '받아쓰기'보다 '검증·반론'을 즐기는 방향으로 메타스킬이 성숙해가고 있다.",
+      "evidence": [
+        "totals: verify=5, counter=4, critique=3, delegate=2",
+        "verify by_month: verify가 2026-04에 1회, 2026-06에 4회로 증가(2026-05엔 없음)"
+      ]
+    },
+    "craft": {
+      "narrative": "코드블록이 포함된 질문이 12개 중 5개(42%)이며, 멀티스텝 질문이 3개(25%)다. 질문 길이 증가와 함께 프롬프트 정교함이 성장하고 있다.",
+      "evidence": [
+        "code_block_count=5 / total=12 → 코드블록 포함율 42%",
+        "multistep_count=3 / total=12 → 멀티스텝 질문 25%",
+        "length bucket: l(긴 질문) 3개, xs(짧은 질문) 2개"
+      ]
+    },
+    "mastery": {
+      "narrative": "docker는 2026-04에 등장 후 사라졌고(first=last=2026-04), kubernetes는 2026-06에 처음 등장했다. docker는 한 달 안에 졸업한 주제로, 빠른 습득 후 다음 단계로 이동하는 패턴을 보인다.",
+      "evidence": [
+        "docker: first=2026-04, last=2026-04, active=false → 1개월 내 졸업",
+        "kubernetes: first=2026-06, last=2026-06, active=false → 6월 신규 진입"
+      ]
+    },
+    "clusters": {
+      "narrative": "상위 3개 term이 컨테이너(docker), 오케스트레이션(kubernetes), 성능(cache)으로 나뉜다. 이는 '인프라 스택 구축' 국면에 해당하며, 단일 도구에서 시스템 전체로 관심이 확장되고 있음을 나타낸다.",
+      "evidence": [
+        "top_terms: docker(4회), kubernetes(3회), cache(2회)",
+        "세 term 모두 인프라/성능 범주 — 애플리케이션 레이어 term 없음"
+      ]
+    }
+  },
+  "chapters": [
+    {
+      "title": "컨테이너 탐색기 (2026-04)",
+      "period": "2026-04",
+      "narrative": "docker 사용법을 중심으로 3개의 짧은 질문(평균 40자)이 기록됐다. '어떻게 하는가'를 묻는 절차 지향 단계."
+    },
+    {
+      "title": "중간 성장기 (2026-05)",
+      "period": "2026-05",
+      "narrative": "4개의 질문에서 cache와 멀티스텝 형식이 등장했다. 질문 길이가 평균 120자로 3배 늘며 복잡도가 높아졌다."
+    },
+    {
+      "title": "오케스트레이션 도약기 (2026-06)",
+      "period": "2026-06",
+      "narrative": "5개의 질문 중 kubernetes 트레이드오프를 따지는 긴 질문(평균 300자)이 등장. verify 메타스킬이 4회로 급증하며 비판적 사고가 본격화됐다."
+    }
+  ],
+  "cards": [
+    {
+      "headline": "7.5×",
+      "stat": "질문 길이 증가",
+      "caption": "4월 40자 → 6월 300자"
+    },
+    {
+      "headline": "docker 졸업",
+      "stat": "한 달 만에 습득",
+      "caption": "2026-04 등장 후 사라짐"
+    },
+    {
+      "headline": "verify 4회",
+      "stat": "6월 검증 급증",
+      "caption": "받아쓰기에서 반론으로"
+    },
+    {
+      "headline": "12개 질문",
+      "stat": "3개월 기록",
+      "caption": "claude 8 · codex 4"
+    }
+  ],
+  "next_bearings": [
+    {
+      "title": "오케스트레이션을 한 단계 더",
+      "why": "kubernetes가 2026-06에야 처음 등장해 아직 표면적이다",
+      "how": "ingress·서비스 메시의 트레이드오프를 비교하는 질문으로 파고들기"
+    },
+    {
+      "title": "코드 맥락을 함께 주기",
+      "why": "코드블록 동반 질문이 12개 중 5개(42%)로, 말로만 설계하는 비중이 크다",
+      "how": "에러 로그·파일을 붙여 한 번에 풀어 왕복을 줄이기"
+    },
+    {
+      "title": "docker 다음 단계로",
+      "why": "docker는 2026-04에 졸업(first=last) — 기초는 다졌다",
+      "how": "컨테이너 보안·멀티스테이지 빌드 같은 심화 주제로 이동"
+    }
+  ]
+}

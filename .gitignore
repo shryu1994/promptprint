@@ -1,0 +1,21 @@
+.superpowers/
+node_modules/
+*.local
+*.local.*
+
+# 분석 산출물 (실제 질문 샘플 포함 — 절대 커밋 금지)
+aggregates.json
+my-aggregates*.json
+*-aggregates.json
+insights.json
+report*.html
+
+__pycache__/
+*.pyc
+*.pyo
+.preview/
+.claude/
+
+# 내부 기획·전략 문서 (비공개 — 배포 산출물에서 제외)
+docs/marketing-launch-strategy.md
+docs/superpowers/
