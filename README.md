@@ -2,48 +2,24 @@
 
 > *see how your questions grew up.*
 
----
+Promptprint reads the **questions you've asked your AI coding agents** — Claude Code and Codex — and shows how your *questioning skill* has grown over time. Think Spotify Wrapped, but for your prompts.
 
-## What it touches / What it never does
+Everything runs on your own machine. It's open source, so "your data never leaves your computer" is something you can verify in the code — not just take on trust.
 
-| | |
-|---|---|
-| **Reads (read-only)** | `~/.claude/projects/`, `~/.codex/` |
-| **Writes (local only)** | `aggregates.json`, `insights.json`, the report HTML — all in your cwd |
-| **Network** | **none** — analysis is pure Python stdlib, runs fully offline |
+## What you get
 
-Verify it yourself in 90 seconds:
+A single self-contained HTML report — a scrollable story with inline charts — plus a few **shareable cards** you can save as images. The report is written in your own language.
 
-```
-bash verify.sh
-```
-
-One command. It greps the analysis package for every network-capable import and exits 0 if none are found. No trust required — the proof is in the code.
-
----
-
-Promptprint reads the **questions you asked your AI coding agents** (Claude Code, Codex) and shows how your *questioning expertise* evolved over time — like Spotify Wrapped, but for your prompts.
-
-It's open source, so "we don't send your data" is something you can verify in the code, not just trust.
-
----
-
-## What it shows
-
-Promptprint reads your real questions and reports six dimensions of growth:
+It covers six dimensions of growth:
 
 | Dimension | What it captures |
 |---|---|
-| **Topic evolution** | What you ask *about*, and how that terrain shifts and deepens |
-| **Depth** | "how do I…" (procedure) → "why is this better…" (principles, trade-offs) |
-| **AI meta-skill** | Dictation → directing & verifying — how you *handle* the AI matures |
+| **Topic evolution** | What you ask *about*, and how that ground shifts and deepens |
+| **Depth** | "How do I…" (procedure) → "Why is this better…" (principles and trade-offs) |
+| **AI meta-skill** | Dictating → directing and verifying: how you *handle* the AI matures |
 | **Craft** | Context, constraints, multi-step prompts — fewer round-trips per intent |
-| **Mastery** | Topics you asked about intensely, then *graduated* from |
-| **Your phases** | Clusters the data finds — your own seasons of work |
-
-Output: a single self-contained HTML report (scroll narrative + inline charts) plus a few **shareable cards** you can save as images.
-
----
+| **Mastery** | Topics you once asked about intensely, then *graduated* from |
+| **Your phases** | Clusters the tool finds in your data — your own seasons of work |
 
 ## Install
 
@@ -55,41 +31,44 @@ In Claude Code (or Codex):
 /promptprint:promptprint
 ```
 
-That's it — no runtime to install. The skill runs the bundled Python (standard library only) and your host agent does the interpretation.
-
----
+That's it — nothing extra to install or run. The skill executes the bundled Python (standard library only), and your host agent does the interpretation.
 
 ## How it works
 
 Five layers, all on your machine:
 
-```
-logs → adapters → deterministic aggregation → host-LLM interpretation → render
-~/.claude · ~/.codex            (stats, no LLM)        (your agent)         HTML + cards
-└──────────────── 🔒 nothing crosses this line; the only network calls are the ones
-                     your agent already makes when you use it ─────────────────────┘
-```
+1. **Logs** — read your questions from `~/.claude` and `~/.codex` (read-only).
+2. **Adapters** — normalize each tool's format into one common schema.
+3. **Aggregate** — deterministic Python statistics: no LLM, same input → same numbers.
+4. **Interpret** — your host agent reads the aggregates plus a small sample (never the full transcript) and writes the story.
+5. **Render** — a single self-contained HTML report and a few shareable cards.
 
-- **Deterministic skeleton, LLM narration.** A dependency-free Python step turns tens of thousands of questions into stable statistics (same input → same numbers). The host LLM only interprets the aggregates + a stratified sample — never the full transcript — and writes the story on top. Numbers don't dance between runs.
-- **The host agent *is* the analysis engine.** Because you're already running Claude Code or Codex, there's no model to install and no key to configure.
+Two ideas keep it trustworthy:
 
----
+- **Deterministic skeleton, LLM narration.** The numbers come from plain Python and don't change between runs; the LLM only adds the interpretation on top.
+- **Your agent is the engine.** Because you already run Claude Code or Codex, there's no separate model to install and no API key to configure.
 
 ## Privacy
 
-- `aggregates.json`, `insights.json`, and the report contain your **actual questions** — they are git-ignored by default. **Do not commit them.**
-- Review a card before you share it.
-- No telemetry. No accounts. No network calls. Run `bash verify.sh` to machine-check the last point.
+Your questions are personal, so privacy is built into the design — not bolted on:
 
----
+- **Read-only.** Promptprint reads your logs and never changes them.
+- **No network.** The analysis is pure Python standard library and runs fully offline. The only network calls are the ones your agent already makes when you use it normally.
+- **Verify it yourself in 90 seconds:**
+  ```
+  bash verify.sh
+  ```
+  One command scans the analysis code for any network-capable import and exits `0` only if it finds none. The proof is in the code, not a promise.
+- **Local output.** `aggregates.json`, `insights.json`, and the report contain your real questions. They are git-ignored by default — don't commit them, and review a card before you share it.
+- No telemetry, no accounts, no sign-up.
 
 ## Supported tools
 
-- ✅ **Claude Code** — `~/.claude/projects`
-- ✅ **Codex** — `~/.codex`
-- 🚧 Antigravity — on the roadmap (adapter slot exists)
-
----
+| Tool | Logs | Status |
+|---|---|---|
+| **Claude Code** | `~/.claude/projects` | ✅ Supported |
+| **Codex** | `~/.codex` | ✅ Supported |
+| Antigravity | — | 🚧 On the roadmap (adapter slot exists) |
 
 ## License
 
