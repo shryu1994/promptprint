@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # 런타임 의존성 0(순수 stdlib)이므로 pip 생태계는 없음.
+  # GitHub Actions 핀만 최신으로 유지한다.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

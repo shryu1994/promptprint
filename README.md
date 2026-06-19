@@ -2,6 +2,8 @@
 
 > *see how your questions grew up.*
 
+[![CI](https://github.com/shryu1994/promptprint/actions/workflows/ci.yml/badge.svg)](https://github.com/shryu1994/promptprint/actions/workflows/ci.yml)
+
 Promptprint reads the **questions you've asked your AI coding agents** — Claude Code and Codex — and shows how your *questioning skill* has grown over time. Think Spotify Wrapped, but for your prompts.
 
 Everything runs on your own machine. It's open source, so "your data never leaves your computer" is something you can verify in the code — not just take on trust.
