@@ -14,7 +14,7 @@ __pycache__/
 *.pyc
 *.pyo
 .preview/
-# 운영자 로컬 dev 머신 — 공개 레포에 OS 내부 안 커밋 (행동규칙은 AGENTS.md·CLAUDE.md 만 tracked)
+# 로컬 dev 환경·도구 파일 (배포 제외)
 .claude/
 .brain/
 

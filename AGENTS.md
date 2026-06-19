@@ -1,4 +1,4 @@
-# AGENTS.md — where-am-i (Promptprint)
+# AGENTS.md — Promptprint
 
 질문 로그로 전문성 성장을 보여주는 도구. 이 레포에서 작업하는 에이전트/LLM 이 지켜야 하는 규칙(자족 — 외부 의존 없음).
 
