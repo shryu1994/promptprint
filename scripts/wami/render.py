@@ -40,6 +40,9 @@ LABELS = {
         "by_tool":        "도구별",
         "period_label":   "기록 기간",
         "conf_prefix":    "데이터 신뢰도",
+        "avg_prefix":     "평균 ",
+        "chars_unit":     "자",
+        "months_unit":    "개월",
     },
     "en": {
         "nav_chart":      "Chart",
@@ -69,6 +72,9 @@ LABELS = {
         "by_tool":        "By Tool",
         "period_label":   "Period",
         "conf_prefix":    "Data confidence",
+        "avg_prefix":     "avg ",
+        "chars_unit":     " chars",
+        "months_unit":    " months",
     },
 }
 
@@ -110,8 +116,9 @@ def _lbl(labels: dict, key: str) -> str:
 
 # ── surge chart ───────────────────────────────────────────────────────────────
 
-def _surge_chart_html(by_month: Dict[str, int], avg_len: Dict[str, float]) -> str:
+def _surge_chart_html(by_month: Dict[str, int], avg_len: Dict[str, float], L=None) -> str:
     """V3 스타일의 극적인 세로막대 차트 (inline SVG)."""
+    L = L or LABELS["ko"]
     months = sorted(by_month)
     if not months:
         return '<p style="color:var(--ink-muted);font-family:ui-monospace,Menlo,monospace;font-size:13px;">데이터 없음</p>'
@@ -136,10 +143,10 @@ def _surge_chart_html(by_month: Dict[str, int], avg_len: Dict[str, float]) -> st
             bar_color = "var(--ink-muted)"
 
         num_cls = ' class="surge-bar-num big"' if is_max else ' class="surge-bar-num"'
-        avg_str = _fmt_int(int(avg)) + "자" if avg else ""
+        avg_str = _fmt_int(int(avg)) + L.get("chars_unit", "자") if avg else ""
         label_parts = _esc(m.replace("-", "."))
         if avg_str:
-            label_parts += f"<br>평균 {_esc(avg_str)}"
+            label_parts += f"<br>{_esc(L.get('avg_prefix', '평균 '))}{_esc(avg_str)}"
 
         bars_html.append(
             f'<div class="surge-month">'
@@ -244,7 +251,7 @@ def _confidence_badge(meta: dict, conf_prefix: str) -> str:
 
 # ── month span helper ─────────────────────────────────────────────────────────
 
-def _month_span(dr) -> str:
+def _month_span(dr, months_unit="개월") -> str:
     if not dr or not dr[0] or not dr[1]:
         return "—"
     try:
@@ -253,7 +260,7 @@ def _month_span(dr) -> str:
         ay, am = (int(x) for x in a.split("-"))
         by_, bm = (int(x) for x in b.split("-"))
         months = (by_ - ay) * 12 + (bm - am) + 1
-        return f"{months}개월"
+        return f"{months}{months_unit}"
     except (ValueError, AttributeError):
         return "—"
 
@@ -569,7 +576,7 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
         f'<span>{_esc(k)} <span>{_fmt_int(v)}</span></span>'
         for k, v in sorted(by_tool.items())
     )
-    period_short = _esc(_month_span(dr))
+    period_short = _esc(_month_span(dr, L.get("months_unit", "개월")))
     hero_meta_html = (
         f'{tool_items}'
         f'<span>{_lbl(L, "period_label")} <span>{period_short}</span></span>'
@@ -582,6 +589,7 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
     surge_html = _surge_chart_html(
         activity.get("by_month", {}),
         shape.get("avg_len_by_month", {}),
+        L,
     )
 
     # ── dimensions ────────────────────────────────────────────────────────────
