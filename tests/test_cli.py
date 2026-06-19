@@ -74,6 +74,22 @@ class CliMainTest(unittest.TestCase):
                 agg = json.load(fh)
             self.assertEqual(agg["meta"]["total_questions"], 4)
 
+    def test_tools_flag_restricts_subset(self):
+        """--tools 가 선택한 도구만 집계한다 — 다른 도구 경로가 주어져도 제외된다."""
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "aggregates.json")
+            ret = main([
+                "aggregate", "--out", out,
+                "--tools", "claude",
+                "--claude", os.path.join(FIXDIR, "claude_sample.jsonl"),
+                "--codex", os.path.join(FIXDIR, "codex_sample.jsonl"),
+            ])
+            self.assertEqual(ret, 0)
+            with open(out) as fh:
+                agg = json.load(fh)
+            self.assertIn("claude", agg["meta"]["by_tool"])
+            self.assertNotIn("codex", agg["meta"]["by_tool"])
+
     def test_aggregate_progress_messages_on_stderr(self):
         """정상 실행 시 진행 상황 메시지가 stderr에 출력되는지 확인."""
         import io

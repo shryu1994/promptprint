@@ -5,6 +5,7 @@ import sys
 from typing import Dict, List, Optional
 
 from wami.extract import extract_records
+from wami.adapters import ADAPTERS
 from wami.aggregate import build_aggregates
 from wami.insights import validate_insights
 from wami.render import build_report_html
@@ -30,6 +31,8 @@ def main(argv=None):
     pa.add_argument("--codex", nargs="*", default=None, help="Codex 로그 루트(생략 시 기본 경로)")
     pa.add_argument("--template", choices=["personal", "corporate", "social"], default="personal",
                     help="대상별 정제 수준: personal(전체)·corporate(원문 제거·프로젝트 익명화)·social(카드 공유용)")
+    pa.add_argument("--tools", nargs="+", choices=sorted(ADAPTERS), default=None,
+                    help="포함할 도구 선택(생략 시 전체). 예: --tools claude codex")
 
     pv = sub.add_parser("validate-insights", help="insights.json 구조 검증")
     pv.add_argument("path", help="검증할 insights.json 경로")
@@ -50,13 +53,20 @@ def main(argv=None):
         if args.codex == []:
             args.codex = None
 
-        roots = None
-        if args.claude is not None or args.codex is not None:
-            roots = {}
-            if args.claude is not None:
-                roots["claude"] = args.claude
-            if args.codex is not None:
-                roots["codex"] = args.codex
+        # 명시적 경로 오버라이드(도구별)
+        overrides = {}
+        if args.claude is not None:
+            overrides["claude"] = args.claude
+        if args.codex is not None:
+            overrides["codex"] = args.codex
+
+        if args.tools is not None:
+            # 선택한 도구만 — 오버라이드 경로 없으면 그 도구 기본 경로
+            roots = {t: (overrides.get(t) or ADAPTERS[t]().default_roots()) for t in args.tools}
+        elif overrides:
+            roots = overrides
+        else:
+            roots = None  # 전체 도구, 기본 경로
 
         # Stage 1: extract
         print("로그를 스캔하는 중…", file=sys.stderr)
