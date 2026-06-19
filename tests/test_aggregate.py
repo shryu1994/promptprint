@@ -89,6 +89,36 @@ class AggregateMetaskillTest(unittest.TestCase):
         self.assertGreaterEqual(ms["totals"]["verify"], 1)
         self.assertIn("2026-01", ms["by_month"])
 
+    def test_msgs_vs_counts_deconfounds_length(self):
+        # 한 메시지에 verify 신호 3회 → totals(매치수)는 ≥3, totals_msgs(메시지수)는 1.
+        recs = [mk("2026-01-01T00:00:00+00:00", "claude",
+                   "이거 검증하고 저거 검증하고 또 검증해줘", sid="a")]
+        ms = build_aggregates(recs)["metaskill"]
+        self.assertGreaterEqual(ms["totals"]["verify"], 3)      # 매치 횟수 합
+        self.assertEqual(ms["totals_msgs"]["verify"], 1)         # 신호가 뜬 메시지 수
+        self.assertEqual(ms["by_month_msgs"]["2026-01"]["verify"], 1)
+
+
+class AggregateTopicSpecificityTest(unittest.TestCase):
+    def test_concentrated_term_outranks_ubiquitous(self):
+        # 'common'은 3개 프로젝트에 두루(count 3), 'gcp'는 1개 프로젝트에 집중(count 3).
+        # 동일 빈도라도 프로젝트 집중도가 높은 'gcp'가 상위여야 한다.
+        recs = []
+        for i, proj in enumerate(["p1", "p2", "p3"]):
+            recs.append(mk(f"2026-0{i + 1}-01T00:00:00+00:00", "claude",
+                           "common topic here", proj=proj, sid=proj))
+        for i in range(3):
+            recs.append(mk(f"2026-0{i + 1}-15T00:00:00+00:00", "claude",
+                           "gcp deployment guide", proj="p1", sid=f"g{i}"))
+        agg = build_aggregates(recs)
+        order = [x["term"] for x in agg["topics"]["top_terms"]]
+        tt = {x["term"]: x for x in agg["topics"]["top_terms"]}
+        self.assertIn("gcp", order)
+        self.assertIn("common", order)
+        self.assertLess(order.index("gcp"), order.index("common"))
+        self.assertEqual(tt["gcp"]["project_count"], 1)
+        self.assertEqual(tt["common"]["project_count"], 3)
+
 
 class AggregateEmptyTest(unittest.TestCase):
     def test_empty_records(self):

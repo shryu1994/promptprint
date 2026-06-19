@@ -95,15 +95,54 @@ _STOP_EN = {
     "run", "use", "using", "add", "make", "want", "need", "just", "now", "here",
     "also", "all", "into", "then", "out", "up", "when", "will", "should",
     "has", "have", "was", "were", "been", "but", "about", "more", "some", "than",
+    # 코드/제어흐름 보일러플레이트 (주제 아님 — 실데이터에서 top_terms 오염)
+    "return", "name", "line", "one", "each", "step", "pass", "value", "values",
+    "none", "true", "false", "null", "self", "def", "var", "let", "const",
+    "print", "item", "items", "list", "dict",
 }
+# 한글 기능어·조사·지시어 (어절 통째라 stopword 로 거른다)
+_STOP_KO = {
+    # 단독 조사 토큰 (예: "API에서" → "에서")
+    "에서", "으로", "에게", "한테", "까지", "부터", "처럼", "보다", "마다",
+    "조차", "에는", "에도", "라고", "라는",
+    # 접속·지시·부사 기능어
+    "그리고", "하지만", "그런데", "그래서", "지금", "현재", "실제", "정도",
+    "경우", "자체", "이런", "그런", "저런", "어떤", "무슨", "다시", "또한",
+    "그냥", "진짜", "약간", "너무", "여기", "거기", "저기", "이것", "그것",
+    "저것", "이거", "그거", "저거", "우리", "통해", "위해", "대해", "관련",
+}
+# 어절 끝 조사 (긴 것부터 — 한 번만, stem 이 2자+ 일 때만 떼어낸다)
+_JOSA = sorted(
+    [
+        "으로서", "으로써", "에서는", "에게서",
+        "으로", "에서", "에게", "한테", "까지", "부터", "처럼", "보다",
+        "마다", "조차", "에는", "에도",
+        "은", "는", "이", "가", "을", "를", "에", "의", "도", "만", "과", "와", "로",
+    ],
+    key=len, reverse=True,
+)
+
+
+def _strip_josa(w: str) -> str:
+    """한글 어절에서 끝 조사 1개를 떼어낸다. stem 이 2자 미만이 되면 그대로 둔다."""
+    for j in _JOSA:
+        if w.endswith(j) and len(w) - len(j) >= 2:
+            return w[: -len(j)]
+    return w
 
 
 def tokens(text: str) -> list:
     out = []
     for m in _TOKEN.finditer(text):
-        w = m.group(0).lower()
-        if w in _STOP_EN:
-            continue
+        w = m.group(0)
+        if w[0].isascii():            # 영문 토큰
+            w = w.lower()
+            if w in _STOP_EN:
+                continue
+        else:                          # 한글 어절 — 끝 조사 스트립 후 불용어 거름
+            w = _strip_josa(w)
+            if w in _STOP_KO:
+                continue
         out.append(w)
     return out
 

@@ -45,9 +45,31 @@ class TextUtilTest(unittest.TestCase):
         toks = T.tokens("Why is the Cache Faster? 왜 캐시가 빠른가")
         self.assertIn("cache", toks)
         self.assertIn("faster", toks)
-        self.assertIn("캐시가", toks)
+        self.assertIn("캐시", toks)        # 끝 조사 '가' 제거됨
+        self.assertNotIn("캐시가", toks)   # 조사 붙은 형태는 토큰이 아님
         self.assertNotIn("the", toks)   # 영어 불용어 제거
         self.assertNotIn("is", toks)
+
+    def test_strip_josa(self):
+        self.assertEqual(T._strip_josa("도커에서"), "도커")
+        self.assertEqual(T._strip_josa("쿠버네티스를"), "쿠버네티스")
+        self.assertEqual(T._strip_josa("캐시가"), "캐시")
+        # stem 이 2자 미만이 되면 떼지 않는다(짧은 토큰 보호)
+        self.assertEqual(T._strip_josa("에서"), "에서")
+
+    def test_korean_stopwords_filtered(self):
+        # "API에서" → 영문 'api' + 한글 '에서'; '에서'(조사 단독)는 제거
+        toks = T.tokens("API에서 docker 설정")
+        self.assertIn("api", toks)
+        self.assertIn("docker", toks)
+        self.assertIn("설정", toks)
+        self.assertNotIn("에서", toks)
+
+    def test_english_code_noise_filtered(self):
+        toks = T.tokens("return name line each step kubernetes")
+        for noise in ("return", "name", "line", "each", "step"):
+            self.assertNotIn(noise, toks)
+        self.assertIn("kubernetes", toks)   # 진짜 주제어는 남는다
 
     def test_metaskill_signals(self):
         sig = T.metaskill_signals("이거 비판해주고 정말 맞는지 검증해줘")

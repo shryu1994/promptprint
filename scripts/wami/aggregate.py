@@ -1,3 +1,4 @@
+import math
 from collections import Counter, defaultdict
 from typing import List
 
@@ -107,20 +108,44 @@ TOP_TERMS_N = 40
 
 def _topics(records: List[QuestionRecord]) -> dict:
     term_total = Counter()
-    term_month = defaultdict(Counter)  # term -> {month: count}
+    term_month = defaultdict(Counter)   # term -> {month: count}
+    term_projects = defaultdict(set)    # term -> {project, ...}
+    projects = set()
     for r in records:
         m = _month(r.ts)
+        if r.project:
+            projects.add(r.project)
         seen_in_q = set(textutil.tokens(r.text))  # 질문당 1회만 카운트(빈도 왜곡 방지)
         for t in seen_in_q:
             term_total[t] += 1
             term_month[t][m] += 1
-    top_pairs = sorted(term_total.items(), key=lambda kv: (-kv[1], kv[0]))[:TOP_TERMS_N]
+            if r.project:
+                term_projects[t].add(r.project)
+
+    num_projects = len(projects)
+
+    def _score(term: str, count: int) -> float:
+        # 주제성 가중: 적은 프로젝트에 집중된 term 일수록 가점(빈도 상위 ≠ 주제).
+        # 모든 프로젝트에 두루 나오는 보일러플레이트(return/name 등)는 강등된다.
+        # 단일 프로젝트(또는 project 정보 없음)면 균일 → 순수 빈도로 폴백.
+        pc = len(term_projects[term]) or 1
+        spec = math.log(1 + num_projects / pc) if num_projects else 1.0
+        return count * spec
+
+    ranked = sorted(
+        term_total.items(),
+        key=lambda kv: (-_score(kv[0], kv[1]), -kv[1], kv[0]),
+    )[:TOP_TERMS_N]
     timeline = {
         term: dict(sorted(term_month[term].items()))
-        for term, _ in top_pairs
+        for term, _ in ranked
     }
     return {
-        "top_terms": [{"term": t, "count": c} for t, c in top_pairs],  # [{term, count}, ...]
+        # [{term, count, project_count}, ...] — project_count 로 주제성 투명 노출
+        "top_terms": [
+            {"term": t, "count": c, "project_count": len(term_projects[t])}
+            for t, c in ranked
+        ],
         "term_timeline": timeline,        # {term: {month: count}}
     }
 
@@ -129,8 +154,13 @@ SIGNAL_KEYS = ("critique", "verify", "delegate", "counter")
 
 
 def _metaskill(records: List[QuestionRecord]) -> dict:
+    # 두 지표를 함께 노출한다:
+    #  - totals/by_month        : 매치 '횟수' 합 (한 메시지의 다중 매치 포함 — 길이에 민감)
+    #  - totals_msgs/by_month_msgs : 신호가 1회+ 등장한 '메시지 수' (0/1 — 길이 강건, 트렌드 1차 지표)
     totals = Counter()
+    totals_msgs = Counter()
     by_month = defaultdict(Counter)
+    by_month_msgs = defaultdict(Counter)
     for r in records:
         sig = textutil.metaskill_signals(r.text)
         m = _month(r.ts)
@@ -139,11 +169,15 @@ def _metaskill(records: List[QuestionRecord]) -> dict:
             if v:
                 totals[k] += v
                 by_month[m][k] += v
+                totals_msgs[k] += 1
+                by_month_msgs[m][k] += 1
     return {
         "totals": {k: totals.get(k, 0) for k in SIGNAL_KEYS},
+        "totals_msgs": {k: totals_msgs.get(k, 0) for k in SIGNAL_KEYS},
         # by_month[month] only contains signal keys that fired (non-zero).
         # Consumers must use .get(key, 0) for missing keys.
         "by_month": {m: dict(c) for m, c in sorted(by_month.items())},
+        "by_month_msgs": {m: dict(c) for m, c in sorted(by_month_msgs.items())},
     }
 
 
