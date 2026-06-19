@@ -8,6 +8,7 @@ import html as _html
 from typing import Dict, List, Optional
 
 from wami.fonts_css import FONT_FACE_CSS
+from wami import redact
 
 # ── i18n ─────────────────────────────────────────────────────────────────────
 
@@ -535,7 +536,8 @@ def _contour_compass():
 
 # ── main builder ──────────────────────────────────────────────────────────────
 
-def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprint") -> str:
+def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprint",
+                      template: str = "personal") -> str:
     """insights + aggregates를 받아 V3 디자인의 self-contained HTML 리포트를 만든다."""
     insights = insights or {}
     aggregates = aggregates or {}
@@ -549,6 +551,12 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
     raw_lang = insights.get("lang", "ko")
     lang = raw_lang if raw_lang in LABELS else "ko"
     L = LABELS[lang]
+
+    # ── audience template ──────────────────────────────────────────────────────
+    # 어떤 섹션을 보여줄지 + (corporate/social) 인용 제거 2차 방어.
+    sections = redact.section_policy(template)
+    if redact.is_redacted(template):
+        insights = redact.sanitize_insights(insights)
 
     # ── period string ─────────────────────────────────────────────────────────
     period_str = ""
@@ -627,6 +635,99 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
     # Build \n → <br> for multi-line heading
     next_heading_html = _esc(L.get("next_heading", "")).replace("&#10;", "<br>").replace("\n", "<br>")
 
+    # ── per-section HTML (템플릿 정책에 따라 선택 조립) ─────────────────────────
+    section_html = {
+        # ── HERO ──────────────────────────────────────────────────────────────
+        "hero": (
+            '<section class="hero">\n'
+            f'{HERO_CONTOUR}\n'
+            '<div class="top-nav">\n'
+            f'  <div class="mark">{_esc(title)}</div>\n'
+            '  <nav>\n'
+            f'    <a href="#chart">{_lbl(L,"nav_chart")}</a>\n'
+            f'    <a href="#dims">{_lbl(L,"nav_bearings")}</a>\n'
+            f'    <a href="#cards">{_lbl(L,"nav_cards")}</a>\n'
+            '  </nav>\n'
+            '</div>\n'
+            '<div class="container" style="position:relative;">\n'
+            f'  {conf_badge}\n'
+            f'  <div class="hero-label anim-fadeup d1">{_esc(title)}&nbsp;·&nbsp;{period_str}</div>\n'
+            f'  <span class="hero-number anim-inkdrop d2">{hero_num_html}</span>\n'
+            f'  <h1 class="hero-headline anim-fadeup d3">{_esc(insights.get("headline",""))}</h1>\n'
+            '  <div class="hero-divider anim-fadeup d4" '
+            'style="animation:lineGrow .8s .7s cubic-bezier(.16,1,.3,1) both;"></div>\n'
+            f'  <p class="hero-summary anim-fadeup d5">{_esc(insights.get("summary",""))}</p>\n'
+            f'  <div class="hero-meta anim-fadeup d6">{hero_meta_html}</div>\n'
+            '</div>\n'
+            '</section>\n'
+        ),
+        # ── SURGE CHART ───────────────────────────────────────────────────────
+        "chart": (
+            f'<section class="surge-section" id="chart">\n'
+            '<div class="container">\n'
+            f'  {eyebrow(L.get("chart_eyebrow",""))}\n'
+            f'  <h2 class="section-h2-light" style="font-style:italic;">'
+            f'{_lbl(L,"section_chart")}</h2>\n'
+            f'  {surge_html}\n'
+            f'  <p class="surge-annotation">{_lbl(L,"chart_caption")}</p>\n'
+            '</div>\n'
+            '</section>\n'
+        ),
+        # ── CHAPTERS ──────────────────────────────────────────────────────────
+        "chapters": (
+            '<section class="section-dark" id="chapters" style="position:relative;overflow:hidden;">\n'
+            f'{_contour_dark_left()}\n'
+            '<div class="container" style="position:relative;">\n'
+            f'  {eyebrow(L.get("chaps_eyebrow",""), light=True)}\n'
+            f'  <h2 class="section-h2-dark">{_lbl(L,"section_chaps")}</h2>\n'
+            f'  <p class="section-sub-dark">{_lbl(L,"chaps_sub")}</p>\n'
+            f'  {chap_html}\n'
+            '</div>\n'
+            '</section>\n'
+        ),
+        # ── 6 DIMENSIONS ──────────────────────────────────────────────────────
+        "dims": (
+            f'<section class="section-parchment" id="dims">\n'
+            '<div class="container">\n'
+            f'  {eyebrow(L.get("dims_eyebrow",""))}\n'
+            f'  <h2 class="section-h2-light">{_lbl(L,"section_dims")}</h2>\n'
+            f'  <p class="section-sub-light">{_lbl(L,"dims_sub")}</p>\n'
+            f'  <div class="dim-grid">{dim_html}</div>\n'
+            '</div>\n'
+            '</section>\n'
+        ),
+        # ── CARDS ─────────────────────────────────────────────────────────────
+        "cards": (
+            '<section style="background:var(--ink);padding:80px 0 0;" id="cards">\n'
+            '<div class="container" style="padding:0 48px;">\n'
+            f'  {eyebrow(L.get("section_cards",""), light=True)}\n'
+            f'  <h2 class="section-h2-dark" style="margin-bottom:8px;">'
+            f'{_lbl(L,"cards_sub")}</h2>\n'
+            f'  <p style="font-family:ui-monospace,Menlo,monospace;font-size:11px;'
+            f'color:var(--ink-muted);margin-bottom:48px;">{_lbl(L,"cards_hint")}</p>\n'
+            '</div>\n'
+            f'<div class="share-grid">{card_html}</div>\n'
+            '</section>\n'
+        ),
+        # ── NEXT BEARINGS ─────────────────────────────────────────────────────
+        "bearings": (
+            '<section class="section-dark" id="bearings" style="position:relative;overflow:hidden;">\n'
+            f'{_contour_compass()}\n'
+            '<div class="container" style="position:relative;">\n'
+            f'  {eyebrow(L.get("next_eyebrow",""), light=True)}\n'
+            f'  <h2 class="section-h2-dark">{next_heading_html}</h2>\n'
+            f'  <p class="section-sub-dark">{_lbl(L,"next_sub")}</p>\n'
+            f'  <div>{bearing_html}</div>\n'
+            '</div>\n'
+            '</section>\n'
+        ),
+    }
+    body = "".join(
+        section_html[k]
+        for k in ("hero", "chart", "chapters", "dims", "cards", "bearings")
+        if k in sections
+    )
+
     return (
         "<!DOCTYPE html>\n"
         f'<html lang="{_esc(lang)}">\n'
@@ -637,80 +738,9 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
         f"<style>{FONT_FACE_CSS}\n{STYLE}</style>\n"
         "</head>\n"
         "<body>\n"
-        # ── HERO ──────────────────────────────────────────────────────────────
-        '<section class="hero">\n'
-        f'{HERO_CONTOUR}\n'
-        '<div class="top-nav">\n'
-        f'  <div class="mark">{_esc(title)}</div>\n'
-        '  <nav>\n'
-        f'    <a href="#chart">{_lbl(L,"nav_chart")}</a>\n'
-        f'    <a href="#dims">{_lbl(L,"nav_bearings")}</a>\n'
-        f'    <a href="#cards">{_lbl(L,"nav_cards")}</a>\n'
-        '  </nav>\n'
-        '</div>\n'
-        '<div class="container" style="position:relative;">\n'
-        f'  {conf_badge}\n'
-        f'  <div class="hero-label anim-fadeup d1">{_esc(title)}&nbsp;·&nbsp;{period_str}</div>\n'
-        f'  <span class="hero-number anim-inkdrop d2">{hero_num_html}</span>\n'
-        f'  <h1 class="hero-headline anim-fadeup d3">{_esc(insights.get("headline",""))}</h1>\n'
-        '  <div class="hero-divider anim-fadeup d4" '
-        'style="animation:lineGrow .8s .7s cubic-bezier(.16,1,.3,1) both;"></div>\n'
-        f'  <p class="hero-summary anim-fadeup d5">{_esc(insights.get("summary",""))}</p>\n'
-        f'  <div class="hero-meta anim-fadeup d6">{hero_meta_html}</div>\n'
-        '</div>\n'
-        '</section>\n'
-        # ── SURGE CHART ───────────────────────────────────────────────────────
-        f'<section class="surge-section" id="chart">\n'
-        '<div class="container">\n'
-        f'  {eyebrow(L.get("chart_eyebrow",""))}\n'
-        f'  <h2 class="section-h2-light" style="font-style:italic;">'
-        f'{_lbl(L,"section_chart")}</h2>\n'
-        f'  {surge_html}\n'
-        f'  <p class="surge-annotation">{_lbl(L,"chart_caption")}</p>\n'
-        '</div>\n'
-        '</section>\n'
-        # ── CHAPTERS ──────────────────────────────────────────────────────────
-        '<section class="section-dark" id="chapters" style="position:relative;overflow:hidden;">\n'
-        f'{_contour_dark_left()}\n'
-        '<div class="container" style="position:relative;">\n'
-        f'  {eyebrow(L.get("chaps_eyebrow",""), light=True)}\n'
-        f'  <h2 class="section-h2-dark">{_lbl(L,"section_chaps")}</h2>\n'
-        f'  <p class="section-sub-dark">{_lbl(L,"chaps_sub")}</p>\n'
-        f'  {chap_html}\n'
-        '</div>\n'
-        '</section>\n'
-        # ── 6 DIMENSIONS ──────────────────────────────────────────────────────
-        f'<section class="section-parchment" id="dims">\n'
-        '<div class="container">\n'
-        f'  {eyebrow(L.get("dims_eyebrow",""))}\n'
-        f'  <h2 class="section-h2-light">{_lbl(L,"section_dims")}</h2>\n'
-        f'  <p class="section-sub-light">{_lbl(L,"dims_sub")}</p>\n'
-        f'  <div class="dim-grid">{dim_html}</div>\n'
-        '</div>\n'
-        '</section>\n'
-        # ── CARDS ─────────────────────────────────────────────────────────────
-        '<section style="background:var(--ink);padding:80px 0 0;" id="cards">\n'
-        '<div class="container" style="padding:0 48px;">\n'
-        f'  {eyebrow(L.get("section_cards",""), light=True)}\n'
-        f'  <h2 class="section-h2-dark" style="margin-bottom:8px;">'
-        f'{_lbl(L,"cards_sub")}</h2>\n'
-        f'  <p style="font-family:ui-monospace,Menlo,monospace;font-size:11px;'
-        f'color:var(--ink-muted);margin-bottom:48px;">{_lbl(L,"cards_hint")}</p>\n'
-        '</div>\n'
-        f'<div class="share-grid">{card_html}</div>\n'
-        '</section>\n'
-        # ── NEXT BEARINGS ─────────────────────────────────────────────────────
-        '<section class="section-dark" id="bearings" style="position:relative;overflow:hidden;">\n'
-        f'{_contour_compass()}\n'
-        '<div class="container" style="position:relative;">\n'
-        f'  {eyebrow(L.get("next_eyebrow",""), light=True)}\n'
-        f'  <h2 class="section-h2-dark">{next_heading_html}</h2>\n'
-        f'  <p class="section-sub-dark">{_lbl(L,"next_sub")}</p>\n'
-        f'  <div>{bearing_html}</div>\n'
-        '</div>\n'
-        '</section>\n'
+        + body
         # ── FOOTER ────────────────────────────────────────────────────────────
-        '<footer class="footer">\n'
+        + '<footer class="footer">\n'
         '  <div class="footer-logo">Prompt<em>print</em></div>\n'
         f'  <div class="footer-sub">{_lbl(L,"footer_made")}</div>\n'
         '</footer>\n'

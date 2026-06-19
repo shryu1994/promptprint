@@ -4,6 +4,7 @@ from typing import List
 
 from wami.model import QuestionRecord, record_to_dict
 from wami import textutil
+from wami import redact
 
 LENGTH_BUCKETS = [(0, 60), (60, 200), (200, 600), (600, 10 ** 9)]
 LENGTH_LABELS = ["xs", "s", "m", "l"]
@@ -226,7 +227,7 @@ def _tool_compare(records: List[QuestionRecord]) -> dict:
     return out
 
 
-def _stratified_samples(records: List[QuestionRecord]) -> dict:
+def _stratified_samples(records: List[QuestionRecord], template: str = "personal") -> dict:
     # (month, tool) 버킷별로 등간격 K개를 결정적으로 뽑는다(난수 없음).
     buckets = defaultdict(list)
     for r in records:
@@ -242,12 +243,15 @@ def _stratified_samples(records: List[QuestionRecord]) -> dict:
             picks = [items[i] for i in idxs]
         chosen.extend(picks)
     chosen.sort(key=lambda r: (r.ts, r.tool, r.turn_idx))
-    return {"stratified": [record_to_dict(r) for r in chosen]}
+    return {"stratified": redact.redact_samples([record_to_dict(r) for r in chosen], template)}
 
 
-def build_aggregates(records: List[QuestionRecord]) -> dict:
-    """결정적 집계. 8개 섹션을 반환한다."""
-    return {
+def build_aggregates(records: List[QuestionRecord], template: str = "personal") -> dict:
+    """결정적 집계. 8개 섹션을 반환한다.
+
+    template(personal/corporate/social)은 samples 정제 수준을 결정한다 — corporate/social은
+    원문 텍스트를 제거하고 프로젝트명을 익명화해, 민감 데이터가 LLM 입력에 들어가기 전에 차단한다."""
+    agg = {
         "meta": _meta(records),
         "activity": _activity(records),
         "shape": _shape(records),
@@ -255,5 +259,7 @@ def build_aggregates(records: List[QuestionRecord]) -> dict:
         "metaskill": _metaskill(records),
         "mastery": _mastery(records),
         "tool_compare": _tool_compare(records),
-        "samples": _stratified_samples(records),
+        "samples": _stratified_samples(records, template),
     }
+    agg["meta"]["template"] = template
+    return agg

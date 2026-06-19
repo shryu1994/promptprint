@@ -1,3 +1,4 @@
+import json
 import unittest
 import tests.conftest_path  # noqa: F401
 from wami.model import QuestionRecord
@@ -230,3 +231,38 @@ class AggregateMasterySamplesTest(unittest.TestCase):
         ])["samples"]["stratified"]
         self.assertEqual(s1, s2)               # 결정적
         self.assertTrue(all("text" in x for x in s1))
+
+
+class AggregateTemplateRedactionTest(unittest.TestCase):
+    def _recs(self):
+        return [
+            mk("2026-01-05T10:00:00+00:00", "claude",
+               "fix the bug in /Users/me/secret.py with token sk-abc123XYZ",
+               proj="billing-svc", sid="s1"),
+            mk("2026-02-05T10:00:00+00:00", "codex",
+               "deploy the api-gateway service to prod",
+               proj="api-gateway", sid="s2"),
+        ]
+
+    def test_personal_keeps_text_and_project(self):
+        agg = build_aggregates(self._recs())  # 기본 personal
+        self.assertEqual(agg["meta"]["template"], "personal")
+        samp = agg["samples"]["stratified"]
+        self.assertTrue(any("/Users/me/secret.py" in (s.get("text") or "") for s in samp))
+        self.assertTrue(any(s.get("project") == "billing-svc" for s in samp))
+
+    def test_corporate_redacts_text_and_anonymizes_project(self):
+        agg = build_aggregates(self._recs(), template="corporate")
+        self.assertEqual(agg["meta"]["template"], "corporate")
+        blob = json.dumps(agg["samples"], ensure_ascii=False)
+        # 민감 원문·경로·시크릿·실제 프로젝트명 0건
+        for needle in ("/Users/me/secret.py", "sk-abc123XYZ", "billing-svc",
+                       "api-gateway", "fix the bug", "deploy the"):
+            self.assertNotIn(needle, blob, f"corporate 집계에 민감 데이터 잔존: {needle!r}")
+        self.assertIn("project-", blob)  # 익명 라벨로 치환됨
+
+    def test_social_also_redacts(self):
+        agg = build_aggregates(self._recs(), template="social")
+        blob = json.dumps(agg["samples"], ensure_ascii=False)
+        self.assertNotIn("sk-abc123XYZ", blob)
+        self.assertNotIn("billing-svc", blob)

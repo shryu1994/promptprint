@@ -208,3 +208,40 @@ class RenderTest(unittest.TestCase):
         """푸터에 made with Promptprint · 100% local 문구가 있어야 한다."""
         self.assertIn("made with Promptprint", self.html)
         self.assertIn("100% local", self.html)
+
+
+class TemplateRenderTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.insights = _load("insights_sample.json")
+        cls.aggregates = _load("aggregates_sample.json")
+
+    def test_personal_has_all_sections(self):
+        out = build_report_html(self.insights, self.aggregates, template="personal")
+        for sec in ('id="chart"', 'id="chapters"', 'id="dims"', 'id="cards"', 'id="bearings"'):
+            self.assertIn(sec, out)
+
+    def test_social_is_cards_only(self):
+        out = build_report_html(self.insights, self.aggregates, template="social")
+        self.assertIn('id="cards"', out)          # 카드 유지
+        self.assertIn("hero-number", out)         # hero 유지
+        for sec in ('id="chart"', 'id="chapters"', 'id="dims"', 'id="bearings"'):
+            self.assertNotIn(sec, out, f"social 템플릿에 {sec} 섹션이 남아있음")
+
+    def test_corporate_has_full_sections(self):
+        out = build_report_html(self.insights, self.aggregates, template="corporate")
+        for sec in ('id="chart"', 'id="chapters"', 'id="dims"', 'id="cards"', 'id="bearings"'):
+            self.assertIn(sec, out)
+
+    def test_corporate_strips_quoted_evidence(self):
+        """corporate/social 렌더는 evidence/narrative의 따옴표 인용을 제거해야 한다."""
+        ins = json.loads(json.dumps(self.insights))  # deep copy
+        ins["dimensions"]["depth"] = {
+            "narrative": 'shifted from how to why',
+            "evidence": ['for example "how do I deploy the billing service?" in April'],
+        }
+        out = build_report_html(ins, self.aggregates, template="corporate")
+        self.assertNotIn("how do I deploy the billing service", out)
+        # personal은 그대로 노출(대조)
+        out_p = build_report_html(ins, self.aggregates, template="personal")
+        self.assertIn(_e("how do I deploy the billing service?"), out_p)

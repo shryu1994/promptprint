@@ -10,9 +10,10 @@ from wami.insights import validate_insights
 from wami.render import build_report_html
 
 
-def run_aggregate(roots_by_tool: Optional[Dict[str, List[str]]], out_path: str) -> dict:
+def run_aggregate(roots_by_tool: Optional[Dict[str, List[str]]], out_path: str,
+                  template: str = "personal") -> dict:
     records = extract_records(roots_by_tool)
-    agg = build_aggregates(records)
+    agg = build_aggregates(records, template)
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as fh:
         json.dump(agg, fh, ensure_ascii=False, indent=2, sort_keys=True)
@@ -27,6 +28,8 @@ def main(argv=None):
     pa.add_argument("--out", default="aggregates.json", help="출력 경로")
     pa.add_argument("--claude", nargs="*", default=None, help="Claude 로그 루트(생략 시 기본 경로)")
     pa.add_argument("--codex", nargs="*", default=None, help="Codex 로그 루트(생략 시 기본 경로)")
+    pa.add_argument("--template", choices=["personal", "corporate", "social"], default="personal",
+                    help="대상별 정제 수준: personal(전체)·corporate(원문 제거·프로젝트 익명화)·social(카드 공유용)")
 
     pv = sub.add_parser("validate-insights", help="insights.json 구조 검증")
     pv.add_argument("path", help="검증할 insights.json 경로")
@@ -35,6 +38,8 @@ def main(argv=None):
     pr.add_argument("--insights", required=True, help="insights.json 경로")
     pr.add_argument("--aggregates", required=True, help="aggregates.json 경로")
     pr.add_argument("--out", default="report.html", help="출력 HTML 경로")
+    pr.add_argument("--template", choices=["personal", "corporate", "social"], default="personal",
+                    help="리포트 템플릿/정제 수준 (aggregate와 동일하게 지정)")
 
     args = p.parse_args(argv)
     if args.cmd == "aggregate":
@@ -70,7 +75,7 @@ def main(argv=None):
             )
             # Still write an aggregates.json with total_questions:0 so downstream tools
             # don't break, but clearly report nothing was found.
-            agg = build_aggregates(records)
+            agg = build_aggregates(records, args.template)
             os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
             with open(args.out, "w", encoding="utf-8") as fh:
                 json.dump(agg, fh, ensure_ascii=False, indent=2, sort_keys=True)
@@ -79,7 +84,7 @@ def main(argv=None):
 
         # Stage 2: build aggregates
         print("집계하는 중…", file=sys.stderr)
-        agg = build_aggregates(records)
+        agg = build_aggregates(records, args.template)
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as fh:
             json.dump(agg, fh, ensure_ascii=False, indent=2, sort_keys=True)
@@ -125,7 +130,11 @@ def main(argv=None):
             for e in errs:
                 print(f"  ✗ {e}", file=sys.stderr)
             return 1
-        html = build_report_html(insights, aggregates)
+        agg_template = aggregates.get("meta", {}).get("template")
+        if agg_template and agg_template != args.template:
+            print(f"⚠ aggregates는 template={agg_template}로 집계됐는데 render는 {args.template}입니다 — "
+                  f"정제 수준이 어긋날 수 있어요(동일 template으로 재집계 권장).", file=sys.stderr)
+        html = build_report_html(insights, aggregates, template=args.template)
         with open(args.out, "w", encoding="utf-8") as fh:
             fh.write(html)
         print(f"리포트 생성 완료 → {args.out}", file=sys.stderr)
