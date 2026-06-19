@@ -70,7 +70,11 @@ Your questions are personal, so privacy is built into the design — not bolted 
 |---|---|---|
 | **Claude Code** | `~/.claude/projects` | ✅ Supported |
 | **Codex** | `~/.codex` | ✅ Supported |
-| Antigravity | — | 🚧 On the roadmap (adapter slot exists) |
+| **Jan** | `<Jan data>/threads/*/messages.jsonl` | ✅ Supported |
+| Cursor | `state.vscdb` (SQLite) | 🚧 Roadmap (local logs are timestamp-light) |
+| Antigravity | `~/.gemini/antigravity/…` | 🚧 IDE logs are encrypted — under investigation |
+
+Pick which tools to include with `--tools` (e.g. `--tools claude jan`); point any tool at a custom path with `--tool-roots tool:/path`. Adding a tool is one small adapter (`scripts/wami/adapters/`).
 
 ## License
 

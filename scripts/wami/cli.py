@@ -32,7 +32,9 @@ def main(argv=None):
     pa.add_argument("--template", choices=["personal", "corporate", "social"], default="personal",
                     help="대상별 정제 수준: personal(전체)·corporate(원문 제거·프로젝트 익명화)·social(카드 공유용)")
     pa.add_argument("--tools", nargs="+", choices=sorted(ADAPTERS), default=None,
-                    help="포함할 도구 선택(생략 시 전체). 예: --tools claude codex")
+                    help="포함할 도구 선택(생략 시 전체). 예: --tools claude codex jan")
+    pa.add_argument("--tool-roots", action="append", default=None, metavar="TOOL:PATH",
+                    help="도구별 로그 경로 지정(반복 가능, 모든 도구 지원). 예: --tool-roots jan:/path/to/threads")
 
     pv = sub.add_parser("validate-insights", help="insights.json 구조 검증")
     pv.add_argument("path", help="검증할 insights.json 경로")
@@ -59,6 +61,15 @@ def main(argv=None):
             overrides["claude"] = args.claude
         if args.codex is not None:
             overrides["codex"] = args.codex
+        # 범용 도구별 경로 (모든 어댑터 지원)
+        if args.tool_roots:
+            for spec in args.tool_roots:
+                tool, sep, path = spec.partition(":")
+                if not sep or tool not in ADAPTERS:
+                    print(f"--tool-roots 형식 오류 또는 알 수 없는 도구: {spec!r} (가능: {sorted(ADAPTERS)})",
+                          file=sys.stderr)
+                    return 2
+                overrides.setdefault(tool, []).append(path)
 
         if args.tools is not None:
             # 선택한 도구만 — 오버라이드 경로 없으면 그 도구 기본 경로

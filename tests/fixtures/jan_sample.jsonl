@@ -1,0 +1,5 @@
+{"id":"m1","role":"user","content":[{"type":"text","text":{"value":"how do I run a local model with Jan?"}}],"created_at":1751012639307}
+{"id":"m2","role":"assistant","content":[{"type":"text","text":{"value":"You can pull a model and..."}}],"created_at":1751012640000}
+{"id":"m3","role":"user","content":[{"type":"text","text":{"value":"why is the 7B model slower than the 3B on my machine?"}}],"created_at":1753600000000}
+{"id":"m4","role":"user","content":"plain string content also works","created_at":1753600100000}
+{"id":"m5","role":"user","content":[{"type":"text","text":{"value":"<system-reminder>noise</system-reminder>"}}],"created_at":1753600200000}

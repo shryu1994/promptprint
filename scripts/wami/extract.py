@@ -4,6 +4,7 @@ from wami.adapters import ADAPTERS
 # 어댑터 등록을 위해 모듈을 import (side-effect로 register 호출).
 from wami.adapters import claude as _claude  # noqa: F401
 from wami.adapters import codex as _codex    # noqa: F401
+from wami.adapters import jan as _jan        # noqa: F401
 from wami.model import QuestionRecord
 
 

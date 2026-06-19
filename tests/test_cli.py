@@ -90,6 +90,21 @@ class CliMainTest(unittest.TestCase):
             self.assertIn("claude", agg["meta"]["by_tool"])
             self.assertNotIn("codex", agg["meta"]["by_tool"])
 
+    def test_tool_roots_custom_path_for_any_tool(self):
+        """--tool-roots 로 임의 도구(jan)에 커스텀 경로를 지정해 집계한다."""
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "aggregates.json")
+            ret = main([
+                "aggregate", "--out", out,
+                "--tools", "jan",
+                "--tool-roots", "jan:" + os.path.join(FIXDIR, "jan_sample.jsonl"),
+            ])
+            self.assertEqual(ret, 0)
+            with open(out) as fh:
+                agg = json.load(fh)
+            self.assertEqual(set(agg["meta"]["by_tool"]), {"jan"})
+            self.assertEqual(agg["meta"]["total_questions"], 3)
+
     def test_aggregate_progress_messages_on_stderr(self):
         """정상 실행 시 진행 상황 메시지가 stderr에 출력되는지 확인."""
         import io
