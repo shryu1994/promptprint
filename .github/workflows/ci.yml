@@ -22,7 +22,7 @@ jobs:
         # 지원 범위 확인: 3.9(최소) ~ 최신
         python-version: ["3.9", "3.12"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
