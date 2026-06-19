@@ -86,6 +86,59 @@ class InsightsValidatorTest(unittest.TestCase):
         self.assertTrue(any("schema_version" in e for e in validate_insights(o)))
 
 
+def _sugg():
+    return [
+        {"name": "deploy-runbook", "why": "deploy를 4회 반복, 평균 143자로 매번 맥락 재설정",
+         "evidence": ["deploy: count=4, avg_len=143자, 3개월 지속"],
+         "est_savings": "추정: 회당 ~140자 재설명 제거 × 4회",
+         "seed": "/skill-creator 로 deploy 런북 스킬을 만든다 — 입력: 서비스명, 환경."},
+        {"name": "latency-triage", "why": "latency 반복 등장",
+         "evidence": ["latency: count=3"],
+         "seed": "지연 트리아지 체크리스트 스킬."},
+    ]
+
+
+class SkillSuggestionsValidatorTest(unittest.TestCase):
+    def test_absent_is_valid(self):
+        o = _valid()
+        self.assertNotIn("skill_suggestions", o)
+        self.assertEqual(validate_insights(o), [])
+
+    def test_present_valid_passes(self):
+        o = _valid(); o["skill_suggestions"] = _sugg()
+        self.assertEqual(validate_insights(o), [])
+
+    def test_not_a_list(self):
+        o = _valid(); o["skill_suggestions"] = "nope"
+        self.assertTrue(any("skill_suggestions" in e for e in validate_insights(o)))
+
+    def test_too_many(self):
+        o = _valid(); o["skill_suggestions"] = _sugg() * 2  # 4개 > 최대 3
+        self.assertTrue(any("skill_suggestions" in e for e in validate_insights(o)))
+
+    def test_missing_name(self):
+        o = _valid(); s = _sugg(); del s[0]["name"]; o["skill_suggestions"] = s
+        self.assertTrue(any("skill_suggestions[0].name" in e for e in validate_insights(o)))
+
+    def test_empty_seed(self):
+        o = _valid(); s = _sugg(); s[0]["seed"] = "  "; o["skill_suggestions"] = s
+        self.assertTrue(any("skill_suggestions[0].seed" in e for e in validate_insights(o)))
+
+    def test_empty_evidence(self):
+        o = _valid(); s = _sugg(); s[0]["evidence"] = []; o["skill_suggestions"] = s
+        self.assertTrue(any("skill_suggestions[0].evidence" in e for e in validate_insights(o)))
+
+    def test_est_savings_optional_absent_ok(self):
+        o = _valid(); s = _sugg()
+        self.assertNotIn("est_savings", s[1])  # 2번째는 est_savings 없음
+        o["skill_suggestions"] = s
+        self.assertEqual(validate_insights(o), [])
+
+    def test_est_savings_present_but_empty_fails(self):
+        o = _valid(); s = _sugg(); s[0]["est_savings"] = ""; o["skill_suggestions"] = s
+        self.assertTrue(any("skill_suggestions[0].est_savings" in e for e in validate_insights(o)))
+
+
 class InsightsFixtureTest(unittest.TestCase):
     def test_golden_insights_is_valid(self):
         with open(os.path.join(FIXDIR, "insights_sample.json"), encoding="utf-8") as fh:

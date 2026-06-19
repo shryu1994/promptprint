@@ -34,6 +34,12 @@ LABELS = {
         "next_eyebrow":   "다음 항로",
         "next_heading":   "나침반이\n가리키는 곳",
         "next_sub":       "지금의 패턴을 읽고 다음에 집중할 방향.",
+        "skills_eyebrow": "행동 — 자동화 기회",
+        "section_skills": "스킬로 만들 것",
+        "skills_sub":     "반복·재설명하는 작업 — 한 번 스킬로 만들면 매번 다시 묻지 않아도 됩니다.",
+        "skill_savings_label": "추정 절감",
+        "skill_seed_label":    "스킬 시드 · skill-creator",
+        "skill_copy_btn":      "복사",
         "save_btn":       "이미지로 저장",
         "footer_made":    "made with Promptprint · 100% local",
         "field_journal":  "field journal no. 01",
@@ -66,6 +72,12 @@ LABELS = {
         "next_eyebrow":   "Next Bearings",
         "next_heading":   "Where the\nCompass Points",
         "next_sub":       "Reading the current patterns to find the next focus.",
+        "skills_eyebrow": "Action — Automation",
+        "section_skills": "Skills to Build",
+        "skills_sub":     "Repeated, re-explained tasks — build them once as a skill and stop re-asking.",
+        "skill_savings_label": "Est. savings",
+        "skill_seed_label":    "Skill seed · skill-creator",
+        "skill_copy_btn":      "Copy",
         "save_btn":       "Save as image",
         "footer_made":    "made with Promptprint · 100% local",
         "field_journal":  "field journal no. 01",
@@ -231,6 +243,39 @@ def _bearing_block(b: dict, idx: int) -> str:
         f'<div class="bearing-title">{_esc(b.get("title", ""))}</div>'
         f'<p class="bearing-why">{_esc(b.get("why", ""))}</p>'
         f'<p class="bearing-how">{_esc(b.get("how", ""))}</p>'
+        f'</div></div>'
+    )
+
+
+# ── skill suggestion block (기둥3) ─────────────────────────────────────────────
+
+def _skill_block(s: dict, idx: int, L: dict) -> str:
+    """스킬 제안 카드: 이름 + why + 실측 근거 + 추정 절감 + 복사 가능한 seed."""
+    s = s or {}
+    num = f"{idx:02d}"
+    ev_items = "".join(f"<li>{_esc(e)}</li>" for e in (s.get("evidence") or []))
+    ev_html = f'<ul class="skill-evidence">{ev_items}</ul>' if ev_items else ""
+    save = s.get("est_savings")
+    save_html = (
+        f'<div class="skill-savings"><span>{_lbl(L, "skill_savings_label")}</span> {_esc(save)}</div>'
+        if save else ""
+    )
+    seed = s.get("seed", "")
+    seed_html = (
+        f'<div class="skill-seed-wrap">'
+        f'<div class="skill-seed-head"><span>{_lbl(L, "skill_seed_label")}</span>'
+        f'<button class="skill-copy-btn" type="button" onclick="copySeed(this)">'
+        f'{_lbl(L, "skill_copy_btn")}</button></div>'
+        f'<pre class="skill-seed">{_esc(seed)}</pre>'
+        f'</div>'
+    ) if seed else ""
+    return (
+        f'<div class="skill-item">'
+        f'<div class="skill-num">{num}</div>'
+        f'<div>'
+        f'<div class="skill-title">{_esc(s.get("name", ""))}</div>'
+        f'<p class="skill-why">{_esc(s.get("why", ""))}</p>'
+        f'{ev_html}{save_html}{seed_html}'
         f'</div></div>'
     )
 
@@ -423,6 +468,35 @@ body{font-family:Georgia,'Iowan Old Style',serif;background:var(--parchment);col
   border-left:2px solid var(--brass-dim)}
 .bearing-how{font-family:Georgia,'Iowan Old Style',serif;font-size:15px;color:var(--ink-muted);line-height:1.7}
 
+/* ── SKILLS (기둥3) ── */
+.skill-item{display:grid;grid-template-columns:64px 1fr;gap:40px;padding:56px 0;
+  border-top:1px solid rgba(255,255,255,.08);align-items:start}
+.skill-num{font-family:'PP Display',Georgia,'Iowan Old Style',serif;font-size:52px;font-weight:900;
+  font-style:italic;color:var(--brass-light);opacity:.6;line-height:1;text-align:center}
+.skill-title{font-family:'PP Display',Georgia,'Iowan Old Style',serif;font-size:28px;font-weight:700;
+  color:var(--parchment-light);line-height:1.2;margin-bottom:16px}
+.skill-why{font-family:Georgia,'Iowan Old Style',serif;font-style:italic;font-size:16px;
+  color:var(--parchment-mid);line-height:1.7;margin-bottom:16px;padding-left:16px;
+  border-left:2px solid var(--brass-dim)}
+.skill-evidence{list-style:none;padding:0;margin:0 0 16px}
+.skill-evidence li{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--parchment-mid);
+  position:relative;padding-left:16px;line-height:1.9}
+.skill-evidence li::before{content:'·';position:absolute;left:0;color:var(--brass-light)}
+.skill-savings{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--brass-light);
+  margin-bottom:16px}
+.skill-savings span{text-transform:uppercase;letter-spacing:.12em;opacity:.8;margin-right:6px}
+.skill-seed-wrap{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08)}
+.skill-seed-head{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);
+  font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-muted)}
+.skill-copy-btn{background:transparent;border:1px solid var(--brass-dim);color:var(--brass-light);
+  font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.08em;
+  padding:5px 12px;cursor:pointer;border-radius:0;white-space:nowrap}
+.skill-copy-btn:hover{background:rgba(184,135,58,.12)}
+.skill-seed{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--parchment-mid);
+  line-height:1.6;padding:14px;margin:0;white-space:pre-wrap;word-break:break-word}
+
 /* ── SECTION HEADINGS ── */
 .section-h2-dark{font-family:'PP Display',Georgia,'Iowan Old Style',serif;font-size:clamp(36px,6vw,72px);
   font-weight:900;line-height:1.0;color:var(--parchment-light);letter-spacing:-.02em;margin-bottom:16px}
@@ -452,10 +526,11 @@ body{font-family:Georgia,'Iowan Old Style',serif;background:var(--parchment);col
   .dim-grid{grid-template-columns:1fr}
   .chapter-item{grid-template-columns:1fr;gap:12px}
   .bearing-item{grid-template-columns:1fr;gap:16px}
+  .skill-item{grid-template-columns:1fr;gap:16px}
 }
 @media print{
   body{background:#fff}
-  .share-save-btn{display:none}
+  .share-save-btn,.skill-copy-btn{display:none}
   .anim-fadeup,.anim-inkdrop{animation:none}
 }
 """
@@ -485,6 +560,19 @@ function saveCard(btn){
   x.fillText('made with Promptprint · 100% local',pad,H-pad-16);
   cv.toBlob(function(b){var a=document.createElement('a');a.href=URL.createObjectURL(b);
     a.download='promptprint-card.png';a.click();URL.revokeObjectURL(a.href);});
+}
+function copySeed(btn){
+  var wrap=btn.closest('.skill-seed-wrap');if(!wrap)return;
+  var pre=wrap.querySelector('.skill-seed');var txt=pre?pre.textContent:'';
+  function done(){var o=btn.getAttribute('data-label')||btn.textContent;
+    btn.setAttribute('data-label',o);btn.textContent='✓';
+    setTimeout(function(){btn.textContent=o;},1200);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done,function(){});
+  }else{
+    var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);
+    ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);
+  }
 }
 """
 
@@ -626,6 +714,12 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
         _bearing_block(b, i + 1) for i, b in enumerate(insights.get("next_bearings", []))
     )
 
+    # ── skill suggestions (기둥3) ───────────────────────────────────────────────
+    skill_suggestions = insights.get("skill_suggestions") or []
+    skill_html = "".join(
+        _skill_block(s, i + 1, L) for i, s in enumerate(skill_suggestions)
+    )
+
     # ── section heading helpers ───────────────────────────────────────────────
     def eyebrow(text, light=False):
         cls = "section-eyebrow section-eyebrow-light" if light else "section-eyebrow"
@@ -721,11 +815,25 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
             '</div>\n'
             '</section>\n'
         ),
+        # ── SKILL SUGGESTIONS (기둥3 — 회고→처방→행동 아크의 마지막) ──────────────
+        "skills": (
+            '<section class="section-dark" id="skills" style="position:relative;overflow:hidden;">\n'
+            f'{_contour_dark_left()}\n'
+            '<div class="container" style="position:relative;">\n'
+            f'  {eyebrow(L.get("skills_eyebrow",""), light=True)}\n'
+            f'  <h2 class="section-h2-dark">{_lbl(L,"section_skills")}</h2>\n'
+            f'  <p class="section-sub-dark">{_lbl(L,"skills_sub")}</p>\n'
+            f'  <div>{skill_html}</div>\n'
+            '</div>\n'
+            '</section>\n'
+        ),
     }
+    # skills 섹션은 제안이 있을 때만(빈 헤딩 방지). social 은 policy 로 이미 제외.
+    order = ("hero", "chart", "chapters", "dims", "cards", "bearings", "skills")
     body = "".join(
         section_html[k]
-        for k in ("hero", "chart", "chapters", "dims", "cards", "bearings")
-        if k in sections
+        for k in order
+        if k in sections and (k != "skills" or skill_suggestions)
     )
 
     return (

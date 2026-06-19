@@ -266,3 +266,80 @@ class AggregateTemplateRedactionTest(unittest.TestCase):
         blob = json.dumps(agg["samples"], ensure_ascii=False)
         self.assertNotIn("sk-abc123XYZ", blob)
         self.assertNotIn("billing-svc", blob)
+
+
+class AggregateSkillCandidatesTest(unittest.TestCase):
+    """기둥3: skill_candidates — 반복·비졸업·재설명비용 큰 작업의 결정적 탐지."""
+
+    CAND_KEYS = {"term", "count", "avg_len", "months_active", "first", "last",
+                 "recent_count", "project_count", "score"}
+
+    def _recs(self):
+        recs = []
+        # "deploy": 4개 질문에 걸쳐 유일하게 반복되는 핵심어(count 4) + 매번 긴 맥락 재설명 → 후보.
+        # (나머지 단어는 질문마다 달라 deploy 만 공통 — 단일 작업의 반복 재설명을 모사)
+        deploy_qs = [
+            "deploy the billing pipeline to staging — full env, secrets, and rollback context again",
+            "deploy the analytics worker to prod with the same migration checklist as last time here",
+            "deploy the gateway release, re-explaining the canary steps and health thresholds once more",
+            "deploy hotfix now; here is the entire incident background and the on-call runbook restated",
+        ]
+        months = ["2026-04", "2026-05", "2026-06", "2026-06"]
+        for i, (q, m) in enumerate(zip(deploy_qs, months)):
+            recs.append(mk(f"{m}-1{i}T10:00:00+00:00", "claude", q, sid=f"d{i}", proj="svc", turn=i))
+        # "docker": 초반(2026-01~02)에만 등장 후 사라짐(count 3) → 졸업 → 제외.
+        for i, m in enumerate(["2026-01", "2026-01", "2026-02"]):
+            recs.append(mk(f"{m}-05T0{i}:00:00+00:00", "claude", "docker setup question here", sid=f"k{i}", proj="old", turn=i))
+        # "rareword": 1회 → MIN_COUNT 미만 → 제외.
+        recs.append(mk("2026-06-01T09:00:00+00:00", "claude", "rareword oneoff thing", sid="r1", proj="svc", turn=0))
+        return recs
+
+    def setUp(self):
+        self.agg = build_aggregates(self._recs())
+        self.cands = self.agg["skill_candidates"]["candidates"]
+        self.by_term = {c["term"]: c for c in self.cands}
+
+    def test_section_present(self):
+        self.assertIn("skill_candidates", self.agg)
+        self.assertIsInstance(self.cands, list)
+
+    def test_repeated_recurring_term_is_candidate(self):
+        self.assertIn("deploy", self.by_term)
+        self.assertEqual(self.by_term["deploy"]["count"], 4)
+        self.assertGreater(self.by_term["deploy"]["avg_len"], 60)
+
+    def test_graduated_term_excluded(self):
+        # docker는 count>=3 이지만 최근 윈도(마지막 2개월) 밖에서 졸업 → 제외.
+        self.assertNotIn("docker", self.by_term)
+
+    def test_below_min_count_excluded(self):
+        self.assertNotIn("rareword", self.by_term)
+
+    def test_candidate_shape(self):
+        for c in self.cands:
+            self.assertEqual(set(c.keys()), self.CAND_KEYS)
+            self.assertIsInstance(c["count"], int)
+            self.assertIsInstance(c["avg_len"], float)
+            self.assertIsInstance(c["months_active"], int)
+
+    def test_top_n_bound(self):
+        self.assertLessEqual(len(self.cands), 5)
+
+    def test_sorted_by_score_desc(self):
+        scores = [c["score"] for c in self.cands]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+
+    def test_deterministic(self):
+        c2 = build_aggregates(self._recs())["skill_candidates"]["candidates"]
+        self.assertEqual(self.cands, c2)
+
+    def test_no_raw_text_or_project_names(self):
+        # corporate 안전 by construction: term+수치만 — 원문 문장·프로젝트명 0.
+        blob = json.dumps(self.agg["skill_candidates"], ensure_ascii=False)
+        self.assertNotIn("deploy the billing pipeline", blob)  # 원문 문장
+        self.assertNotIn("svc", blob)                          # 프로젝트명
+        self.assertNotIn("old", blob)
+
+    def test_empty_records(self):
+        agg = build_aggregates([])
+        self.assertEqual(agg["skill_candidates"]["candidates"], [])

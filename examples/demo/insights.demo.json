@@ -87,5 +87,27 @@
       "why": "Verification asks reached 270, but counter-questions ('why not…', 'rationale') stayed low at 90 — you check answers more than you challenge them.",
       "how": "After a proposal, ask 'why not the simpler option?' to force the AI to defend the design before you commit to it."
     }
+  ],
+  "skill_suggestions": [
+    {
+      "name": "tradeoff-review",
+      "why": "You ask for the same trade-off comparison over and over — re-describing the options, the goals, and the constraints from scratch each time instead of reusing a fixed frame.",
+      "evidence": [
+        "'trade-off' framing recurs ~300 times at an average of 255 chars/question, across 3 months",
+        "almost all of it is recent — the pattern is still active, not a phase you graduated from"
+      ],
+      "est_savings": "Estimate: ~255 chars of re-explanation removed per ask. Assumption — one /skill call replaces the hand-written comparison frame each time; the measured counts (300×, 255 chars) are real, the saving is an estimate.",
+      "seed": "/skill-creator: build an 'architecture trade-off review' skill. Input: two candidate options + the goal axes (latency / cost / ops load). Output: a side-by-side table on latency, cost, operational load and risk, then a recommendation and the verification questions to run. Representative asks: \"kubernetes vs a plain vm for the billing service — what are the trade-offs?\", \"why not just scale the workers horizontally?\"."
+    },
+    {
+      "name": "latency-triage",
+      "why": "Latency and throughput investigations repeat with the same shape — current numbers, a budget, then 'walk me through the options' — and you rebuild that context every time.",
+      "evidence": [
+        "'latency' recurs ~360 times at ~272 chars/question, concentrated in the two most recent months",
+        "usually paired with a verify/critique ask (check this against the target)"
+      ],
+      "est_savings": "Estimate: the repeated p99/budget setup (~270 chars) collapses into one skill call. Assumption — the recurring framing is the reusable part; per-incident numbers still vary.",
+      "seed": "/skill-creator: build a 'latency triage' skill. Input: current p50/p99 + target + a one-line topology. Output: where the time likely goes, two architectures with trade-offs, and a check against the availability target. Representative ask: \"p99 ~800ms, goal under 200ms, keep the cache warm after deploys — walk me through the trade-offs and verify the plan against the goals.\""
+    }
   ]
 }

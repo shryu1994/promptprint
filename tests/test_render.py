@@ -225,7 +225,7 @@ class TemplateRenderTest(unittest.TestCase):
         out = build_report_html(self.insights, self.aggregates, template="social")
         self.assertIn('id="cards"', out)          # 카드 유지
         self.assertIn("hero-number", out)         # hero 유지
-        for sec in ('id="chart"', 'id="chapters"', 'id="dims"', 'id="bearings"'):
+        for sec in ('id="chart"', 'id="chapters"', 'id="dims"', 'id="bearings"', 'id="skills"'):
             self.assertNotIn(sec, out, f"social 템플릿에 {sec} 섹션이 남아있음")
 
     def test_corporate_has_full_sections(self):
@@ -245,3 +245,72 @@ class TemplateRenderTest(unittest.TestCase):
         # personal은 그대로 노출(대조)
         out_p = build_report_html(ins, self.aggregates, template="personal")
         self.assertIn(_e("how do I deploy the billing service?"), out_p)
+
+    def test_corporate_strips_quoted_skill_seed(self):
+        """corporate 렌더는 skill_suggestions.seed의 따옴표 인용(대표 질문)도 제거해야 한다."""
+        ins = json.loads(json.dumps(self.insights))
+        ins["skill_suggestions"] = [{
+            "name": "deploy-runbook",
+            "why": "deploy 반복",
+            "evidence": ["count=4"],
+            "seed": 'skill 목적: 배포 자동화. 대표 질문: "how do I deploy the gateway to prod?"',
+        }]
+        out = build_report_html(ins, self.aggregates, template="corporate")
+        self.assertNotIn("how do I deploy the gateway to prod", out)
+        # personal은 노출(대조)
+        out_p = build_report_html(ins, self.aggregates, template="personal")
+        self.assertIn(_e("how do I deploy the gateway to prod?"), out_p)
+
+
+class SkillsSectionRenderTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.insights = _load("insights_sample.json")
+        cls.aggregates = _load("aggregates_sample.json")
+        cls.html = build_report_html(cls.insights, cls.aggregates)
+
+    def test_fixture_has_skill_suggestions(self):
+        self.assertTrue(self.insights.get("skill_suggestions"))
+
+    def test_skills_section_rendered(self):
+        self.assertIn('id="skills"', self.html)
+        for s in self.insights["skill_suggestions"]:
+            self.assertIn(_e(s["name"]), self.html)
+            self.assertIn(_e(s["why"]), self.html)
+
+    def test_skills_evidence_and_seed_present(self):
+        s = self.insights["skill_suggestions"][0]
+        for ev in s["evidence"]:
+            self.assertIn(_e(ev), self.html)        # 실측 근거 노출
+        self.assertIn(_e(s["seed"]), self.html)     # 복사 가능한 seed
+        self.assertIn(_e(s["est_savings"]), self.html)
+        self.assertIn("copySeed", self.html)        # 복사 메커니즘
+
+    def test_skills_label_korean(self):
+        self.assertIn("스킬로 만들 것", self.html)
+
+    def test_skills_omitted_when_no_suggestions(self):
+        ins = {k: v for k, v in self.insights.items() if k != "skill_suggestions"}
+        out = build_report_html(ins, self.aggregates)
+        self.assertNotIn('id="skills"', out)
+
+    def test_skills_omitted_when_empty_list(self):
+        ins = dict(self.insights, skill_suggestions=[])
+        out = build_report_html(ins, self.aggregates)
+        self.assertNotIn('id="skills"', out)
+
+    def test_skills_not_in_social(self):
+        out = build_report_html(self.insights, self.aggregates, template="social")
+        self.assertNotIn('id="skills"', out)
+
+    def test_skills_escapes_injection(self):
+        ins = json.loads(json.dumps(self.insights))
+        ins["skill_suggestions"][0]["name"] = "<script>alert(2)</script>"
+        out = build_report_html(ins, self.aggregates)
+        self.assertNotIn("<script>alert(2)</script>", out)
+        self.assertIn("&lt;script&gt;", out)
+
+    def test_skills_english_label(self):
+        en = dict(self.insights, lang="en")
+        out = build_report_html(en, self.aggregates)
+        self.assertIn("Skills to Build", out)

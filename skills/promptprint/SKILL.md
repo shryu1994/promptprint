@@ -28,7 +28,7 @@ description: >-
    ```
    특정 도구만 보려면 `--tools claude codex`처럼 선택하고(생략 시 전체), 커스텀 경로는 `--claude <경로...>`/`--codex <경로...>`로 지정합니다. 기본 경로는 `~/.claude/projects`·`~/.codex`.
 
-2. **`$PWD/aggregates.json`을 읽습니다.** 8개 섹션(`meta, activity, shape, topics, metaskill, mastery, tool_compare, samples`)이 있습니다. **수만 개 질문 전수가 아니라**, `samples.stratified`(대표 질문)와 집계 수치만 근거로 삼으세요. 그게 이 도구의 설계입니다(컨텍스트·비용 절약).
+2. **`$PWD/aggregates.json`을 읽습니다.** 9개 섹션(`meta, activity, shape, topics, metaskill, mastery, skill_candidates, tool_compare, samples`)이 있습니다. **수만 개 질문 전수가 아니라**, `samples.stratified`(대표 질문)와 집계 수치만 근거로 삼으세요. 그게 이 도구의 설계입니다(컨텍스트·비용 절약).
 
 3. **6개 차원을 해석해 `$PWD/insights.json`을 만듭니다.** (아래 "6차원 해석 가이드"와 "출력 스키마"를 따르세요.)
    - ⚠️ **corporate/social이면 evidence·narrative에 원문 질문을 인용하지 마세요 — 지표·추세만.** (집계가 이미 원문을 제거했고, 렌더가 인용을 한 번 더 걸러냅니다.) 이때 `depth`는 질문 인용 대신 `shape.avg_len_by_month`·코드블록률 같은 구조 지표로 해석합니다.
@@ -67,6 +67,18 @@ description: >-
 - **단정 아닌 제안 톤.** 데이터가 빈약하면 신중히, 억지 제안 금지.
 - 약점(낮은 차원)과 기회(새 주제·다음 단계) 양쪽에서 뽑되, 잔소리가 되지 않게 2~4개로 압축.
 
+## 스킬 제안 (skill_suggestions) — 행동: "더 묻지 말고 스킬로 만들어라" (선택)
+
+회고(과거 분석)·처방(다음 항로) 다음의 마지막 조각 — **반복·재설명하는 작업을 `/skill-creator`로 스킬화**하라고 제안해 루프를 닫습니다. `aggregates.skill_candidates.candidates`(L3가 결정적으로 탐지한 상위 후보)를 읽어 **0~3개**를 만듭니다. 각 항목 = `{name, why, evidence, est_savings?, seed}`:
+
+- 후보 = **반복은 많은데 졸업하지 않고(계속 재등장) 매번 같은 맥락을 재설명**하는 term. 근거 필드: `count`(반복), `avg_len`(재설명 비용 = 스킬화 ROI 핵심), `months_active`(지속), `recent_count`(최근성).
+- **학습 중(곧 졸업할 주제)과 반복 노역을 구분**하라 — L3가 졸업 term은 이미 뺐지만, 빈약한 데이터면 무리하지 말고 **0개로 두라**(억지 제안 금지). `confidence_tier`가 `snapshot`이면 특히 보수적으로.
+- 같은 프롬프트에 공기하는 여러 term은 **하나의 작업으로 묶어** 명명하라(L3는 단일 term 단위라 동점이 생긴다).
+- `name`: 만들 스킬의 짧은 이름. `why`: **실측 수치에 정박**(예: "deploy를 4회 반복, 평균 143자로 매번 맥락 재설정"). `evidence`: candidate의 측정값(count·avg_len·months) 인용.
+- `est_savings`(선택): **반드시 추정으로 명시 + 가정 노출**(예: "추정: 회당 ~140자 재설명 제거 × 4회 · 가정 — 질문당 1회 호출로 대체"). **조작된 ROI 금지** — 실측 N·M에만 정박하고 추정은 추정이라고 밝혀라(피드백 #1의 교훈: 과장 지표 금지).
+- `seed`: 바로 `/skill-creator`에 넣을 한 단락 — 스킬의 목적·입력·출력 + `samples.stratified`에서 고른 대표 예시 2~3개.
+- ⚠️ **corporate/social이면 `seed`·`why`·`evidence`에 원문 질문을 인용하지 마라** — 작업을 추상적으로 기술(집계가 이미 원문을 제거했고 렌더가 인용을 한 번 더 거른다). **corporate에서는 이 섹션이 헤드라인(팀 능률 ROI)** 이니 절감 추정을 앞세우되 정직하게.
+
 ## 정박 규칙 (중요)
 
 - 모든 `narrative`는 추측이 아니라 **집계 수치/샘플에 근거**해야 합니다. 통계 뼈대는 이미 결정적이니, 당신은 그 위에 해석·서사만 얹습니다.
@@ -104,11 +116,15 @@ description: >-
   ],
   "next_bearings": [                       // 2~4개, 데이터 정박 개선 제안
     { "title": "제안 제목", "why": "근거(지표/패턴 인용)", "how": "구체적 행동" }
+  ],
+  "skill_suggestions": [                    // 선택, 0~3개 — 반복 작업의 스킬화 제안(기둥3)
+    { "name": "스킬 이름", "why": "실측 정박", "evidence": ["count=4 · avg_len=143자 …"],
+      "est_savings": "추정 … (가정 노출)", "seed": "/skill-creator 에 넣을 한 단락" }
   ]
 }
 ```
 
-규칙: `dimensions`는 위 6개 키만(추가/누락 불가). 각 dimension은 비어있지 않은 `narrative` + 1개 이상의 비어있지 않은 `evidence`. `chapters`는 1개 이상. `cards`는 3~5개. `next_bearings`는 2~4개(각 `title`·`why`·`how` 모두 비어있지 않게).
+규칙: `dimensions`는 위 6개 키만(추가/누락 불가). 각 dimension은 비어있지 않은 `narrative` + 1개 이상의 비어있지 않은 `evidence`. `chapters`는 1개 이상. `cards`는 3~5개. `next_bearings`는 2~4개(각 `title`·`why`·`how` 모두 비어있지 않게). `skill_suggestions`는 **선택(0~3개)** — 있으면 각 `name`·`why`·`seed`는 비어있지 않게, `evidence`는 1개 이상, `est_savings`는 있으면 비어있지 않게.
 
 ## 민감정보 주의
 

@@ -13,6 +13,7 @@ CARDS_MIN = 3
 CARDS_MAX = 5
 BEARINGS_MIN = 2
 BEARINGS_MAX = 4
+SKILL_SUGGESTIONS_MAX = 3   # 기둥3: 상위 N개만(전부 스킬화 권유 금지). 선택 키.
 
 
 def _nonempty_str(v) -> bool:
@@ -91,5 +92,27 @@ def validate_insights(obj) -> List[str]:
             for f in ("title", "why", "how"):
                 if not _nonempty_str(b.get(f)):
                     errors.append(f"next_bearings[{i}].{f}: 비어있지 않은 문자열이어야 함")
+
+    # skill_suggestions: 선택 키(없으면 valid — backward-compat). 있으면 형식 검증.
+    sugg = obj.get("skill_suggestions")
+    if sugg is not None:
+        if not isinstance(sugg, list):
+            errors.append("skill_suggestions: list가 아님")
+        elif len(sugg) > SKILL_SUGGESTIONS_MAX:
+            errors.append(f"skill_suggestions: 최대 {SKILL_SUGGESTIONS_MAX}개여야 함(현재 {len(sugg)})")
+        else:
+            for i, s in enumerate(sugg):
+                if not isinstance(s, dict):
+                    errors.append(f"skill_suggestions[{i}]: dict가 아님")
+                    continue
+                for f in ("name", "why", "seed"):
+                    if not _nonempty_str(s.get(f)):
+                        errors.append(f"skill_suggestions[{i}].{f}: 비어있지 않은 문자열이어야 함")
+                ev = s.get("evidence")
+                if not (isinstance(ev, list) and len(ev) >= 1 and all(_nonempty_str(x) for x in ev)):
+                    errors.append(f"skill_suggestions[{i}].evidence: 1개 이상의 비어있지 않은 문자열이어야 함")
+                # est_savings 선택 — 있으면 비어있지 않게(추정치 명시 강제).
+                if "est_savings" in s and not _nonempty_str(s.get("est_savings")):
+                    errors.append(f"skill_suggestions[{i}].est_savings: 있으면 비어있지 않은 문자열이어야 함")
 
     return errors

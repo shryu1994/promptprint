@@ -211,6 +211,72 @@ def _mastery(records: List[QuestionRecord]) -> dict:
     return {"topic_lifespan": rows}
 
 
+SKILL_MIN_COUNT = 3      # 후보 최소 반복 빈도(노이즈 차단)
+SKILL_TOP_N = 5          # 상위 N개만 제안(전부 스킬화 권유 금지)
+SKILL_RECENT_MONTHS = 2  # "최근" 윈도 = 데이터 마지막 N개월
+
+
+def _skill_candidates(records: List[QuestionRecord]) -> dict:
+    """스킬화 후보를 결정적으로 탐지한다(기둥3).
+
+    스킬감 = 반복은 많은데 졸업하지 않고(계속 재등장) 매번 같은 맥락을 재설명하는 작업.
+    이는 _mastery(졸업 = 등장 후 사라진 주제)의 정확한 역으로, '곧 졸업할 학습'과
+    '반복 노역'을 가른다.
+
+    점수 외 모든 값은 실측치(정직성 정박). 원문 문장·프로젝트명을 담지 않아
+    (term + 수치만) corporate/social 집계에 그대로 안전하다 — topics.top_terms 와 동일한 노출 수준."""
+    count = Counter()                       # term -> 그 term을 포함한 질문 수(질문당 1회)
+    len_sum = defaultdict(int)              # term -> 길이 합(재설명 비용 산출용)
+    term_month = defaultdict(Counter)       # term -> {month: count}
+    term_projects = defaultdict(set)        # term -> {project, ...}
+    first, last = {}, {}
+    all_months = set()
+    for r in records:
+        m = _month(r.ts)
+        all_months.add(m)
+        n = len(r.text)
+        for t in set(textutil.tokens(r.text)):  # 질문당 1회만(빈도 왜곡 방지)
+            count[t] += 1
+            len_sum[t] += n
+            term_month[t][m] += 1
+            if r.project:
+                term_projects[t].add(r.project)
+            if t not in first or m < first[t]:
+                first[t] = m
+            if t not in last or m > last[t]:
+                last[t] = m
+
+    if not all_months:
+        return {"candidates": []}
+
+    recent_window = set(sorted(all_months)[-SKILL_RECENT_MONTHS:])
+
+    rows = []
+    for t, c in count.items():
+        if c < SKILL_MIN_COUNT:
+            continue
+        if last[t] not in recent_window:    # 졸업(최근 재등장 없음) → 제외
+            continue
+        avg_len = round(len_sum[t] / c, 1)
+        months_active = len(term_month[t])
+        recent_count = sum(cnt for mth, cnt in term_month[t].items() if mth in recent_window)
+        # 빈도 × 지속(여러 달 재등장) × 재설명비용(평균 길이) — 단조·투명, 매직넘버 없음.
+        score = round(c * months_active * math.log(1 + avg_len), 2)
+        rows.append({
+            "term": t,
+            "count": c,
+            "avg_len": avg_len,
+            "months_active": months_active,
+            "first": first[t],
+            "last": last[t],
+            "recent_count": recent_count,
+            "project_count": len(term_projects[t]),
+            "score": score,
+        })
+    rows.sort(key=lambda d: (-d["score"], -d["count"], d["term"]))
+    return {"candidates": rows[:SKILL_TOP_N]}
+
+
 def _tool_compare(records: List[QuestionRecord]) -> dict:
     out = {}
     by_tool = defaultdict(list)
@@ -258,6 +324,7 @@ def build_aggregates(records: List[QuestionRecord], template: str = "personal") 
         "topics": _topics(records),
         "metaskill": _metaskill(records),
         "mastery": _mastery(records),
+        "skill_candidates": _skill_candidates(records),
         "tool_compare": _tool_compare(records),
         "samples": _stratified_samples(records, template),
     }

@@ -3,18 +3,19 @@ import tests.conftest_path  # noqa: F401
 from wami import redact as R
 
 
+FULL = {"hero", "chart", "chapters", "dims", "cards", "bearings", "skills"}
+
+
 class SectionPolicyTest(unittest.TestCase):
     def test_personal_and_corporate_full(self):
-        full = {"hero", "chart", "chapters", "dims", "cards", "bearings"}
-        self.assertEqual(R.section_policy("personal"), full)
-        self.assertEqual(R.section_policy("corporate"), full)
+        self.assertEqual(R.section_policy("personal"), FULL)
+        self.assertEqual(R.section_policy("corporate"), FULL)
 
     def test_social_cards_only(self):
         self.assertEqual(R.section_policy("social"), {"hero", "cards"})
 
     def test_unknown_falls_back_to_personal(self):
-        self.assertEqual(R.section_policy("bogus"),
-                         {"hero", "chart", "chapters", "dims", "cards", "bearings"})
+        self.assertEqual(R.section_policy("bogus"), FULL)
 
 
 class IsRedactedTest(unittest.TestCase):
@@ -74,6 +75,16 @@ class StripQuotesTest(unittest.TestCase):
         # 작은따옴표 축약형은 건드리지 않는다
         self.assertEqual(R.strip_quotes("don't change this"), "don't change this")
 
+    def test_strips_single_quoted_question(self):
+        # 인용처럼 쓰인 홑따옴표(앞뒤가 공백/문장부호)는 제거 — 원문 질문 누출 차단
+        out = R.strip_quotes("대표 질문: 'how do I deploy the gateway?' 입니다")
+        self.assertNotIn("how do I deploy the gateway", out)
+
+    def test_preserves_possessive_and_contraction_mid_text(self):
+        # 소유격·축약형(따옴표가 글자에 붙음)은 보존
+        s = "don't touch the worker's queue"
+        self.assertEqual(R.strip_quotes(s), s)
+
     def test_non_string_passthrough(self):
         self.assertEqual(R.strip_quotes(None), None)
 
@@ -96,3 +107,32 @@ class SanitizeInsightsTest(unittest.TestCase):
         self.assertIn("length doubled", out["dimensions"]["depth"]["evidence"])
         # 입력 비파괴
         self.assertIn("how do I deploy", ins["summary"])
+
+    def test_strips_quotes_in_skill_suggestions(self):
+        ins = {
+            "skill_suggestions": [
+                {"name": "deploy-runbook",
+                 "why": 'deploy를 반복하며 "deploy the billing service" 같은 맥락을 재설명',
+                 "evidence": ['예: "how do I deploy the gateway?" 4회', "count=4"],
+                 "est_savings": '회당 "긴 맥락" 재설명 제거',
+                 "seed": 'skill: 입력은 "서비스명"'},
+            ],
+        }
+        out = R.sanitize_insights(ins)
+        s = out["skill_suggestions"][0]
+        self.assertNotIn("deploy the billing service", s["why"])
+        self.assertNotIn("how do I deploy the gateway", s["evidence"][0])
+        self.assertIn("count=4", s["evidence"])            # 인용 없는 항목 유지
+        self.assertNotIn("긴 맥락", s["est_savings"])
+        self.assertNotIn("서비스명", s["seed"])
+        # 입력 비파괴
+        self.assertIn("deploy the billing service", ins["skill_suggestions"][0]["why"])
+
+    def test_strips_single_quoted_raw_prompt_in_seed(self):
+        # seed는 예시 질문을 담는 고위험 필드 — 홑따옴표 원문도 corporate에서 제거돼야.
+        ins = {"skill_suggestions": [{
+            "name": "x", "why": "y", "evidence": ["count=4"],
+            "seed": "대표 질문: 'how do I deploy the billing service?'"}]}
+        out = R.sanitize_insights(ins)
+        self.assertNotIn("how do I deploy the billing service",
+                         out["skill_suggestions"][0]["seed"])

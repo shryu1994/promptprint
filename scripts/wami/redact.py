@@ -13,7 +13,7 @@ import re
 
 TEMPLATES = ("personal", "corporate", "social")
 
-_ALL_SECTIONS = {"hero", "chart", "chapters", "dims", "cards", "bearings"}
+_ALL_SECTIONS = {"hero", "chart", "chapters", "dims", "cards", "bearings", "skills"}
 
 # 템플릿 → 렌더에 포함할 섹션
 _SECTIONS = {
@@ -69,8 +69,12 @@ def redact_samples(stratified, template):
     return out
 
 
-# 큰/곱은따옴표로 둘러싼 인용 덩어리. 작은따옴표(축약형 don't)는 건드리지 않는다.
-_QUOTE = re.compile(r'["“”][^"“”]*["“”]')
+# 큰/곱은따옴표로 둘러싼 인용 덩어리는 제거한다. 홑따옴표는 '인용처럼' 쓰일 때만 —
+# 앞뒤가 글자/숫자가 아닐 때만 — 제거해 축약형(don't)·소유격(worker's)은 보존한다.
+_QUOTE = re.compile(
+    r'["“”][^"“”]*["“”]'                          # 쌍/곱은따옴표 인용
+    r"|(?<![\w'‘’])['‘][^'‘’\n]*['’](?![\w'‘’])"  # 홑따옴표 인용(축약형/소유격 제외)
+)
 
 
 def strip_quotes(s):
@@ -109,4 +113,11 @@ def sanitize_insights(insights):
             for f in ("headline", "stat", "caption"):
                 if isinstance(c.get(f), str):
                     c[f] = strip_quotes(c[f])
+    for s in (ins.get("skill_suggestions") or []):
+        if isinstance(s, dict):
+            for f in ("why", "seed", "est_savings"):
+                if isinstance(s.get(f), str):
+                    s[f] = strip_quotes(s[f])
+            if s.get("evidence") is not None:
+                s["evidence"] = _strip_list(s.get("evidence"))
     return ins

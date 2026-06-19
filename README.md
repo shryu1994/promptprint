@@ -27,6 +27,8 @@ It covers six dimensions of growth:
 | **Mastery** | Topics you once asked about intensely, then *graduated* from |
 | **Your phases** | Clusters the tool finds in your data — your own seasons of work |
 
+Beyond the retrospective, the report closes with **skills to build** — repeated, re-explained tasks it spots in your logs, each with a ready-to-paste seed for `/skill-creator` and an *honest, measured* estimate of what automating it would save (the counts are real; the saving is flagged as an estimate, with its assumptions shown).
+
 ## Install
 
 In Claude Code (or Codex):
