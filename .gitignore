@@ -20,3 +20,6 @@ __pycache__/
 
 # 로컬 전용 문서·작업 노트 (배포 제외)
 docs/
+
+# 데모 합성 입력은 generate_demo_data.py로 재생성 (파생물 — 커밋 안 함)
+examples/demo/*.jsonl

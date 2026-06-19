@@ -1,0 +1,91 @@
+{
+  "schema_version": "1",
+  "lang": "en",
+  "headline": "From one-line asks to multi-step system design",
+  "summary": "Over five months (Feb–Jun 2026) you asked 700 questions across Claude Code and Codex. It started with short \"how do I…\" lookups — roughly 34 characters each — and by late spring the average question grew to ~272 characters: multi-step specs with code blocks and explicit goals. The vocabulary moved with it, from setup basics (docker, git, pip) to system concerns (latency, cache, throughput). And the way you work with the AI matured — 238 trade-off/critique prompts and 210 verification checks: you started directing and pressure-testing answers, not just dictating tasks. (This is a sample report built from synthetic data.)",
+  "dimensions": {
+    "topic_evolution": {
+      "narrative": "Your questions migrated from 'how do I set this up' to 'how should this system behave under load'. The early months are full of tooling basics; by May the top terms are almost entirely about runtime behavior.",
+      "evidence": [
+        "Early terms: docker, git, pip, npm — concentrated in 2026-02 ~ 2026-03",
+        "'latency' and 'throughput' first appear in 2026-05",
+        "'cache' runs 2026-04 → 2026-06 as the connective theme"
+      ]
+    },
+    "depth": {
+      "narrative": "The shift from procedure to principle is the clearest signal in your data: questions got ~8× longer as you moved from 'how do I' to 'why is this slower' to full design trade-offs.",
+      "evidence": [
+        "Average question length: 34 chars (Feb) → 272 chars (May–Jun), about 8×",
+        "Length mix moved from mostly 'xs' (under 60 chars) to 'm' (200–600 chars)",
+        "'why is X slower than Y' style questions emerge in 2026-04"
+      ]
+    },
+    "metaskill": {
+      "narrative": "You went from taking dictation to running the room — asking for trade-offs, demanding verification, and delegating the final call while keeping the reasoning visible.",
+      "evidence": [
+        "Critique / trade-off prompts: 238",
+        "Verification asks ('verify', 'are you sure', 'double-check'): 210",
+        "Delegation ('your call', 'you decide'): 140; counter-questions ('why not', 'rationale'): 70"
+      ]
+    },
+    "craft": {
+      "narrative": "Your prompts became self-contained: code blocks for context and numbered steps that hand the AI a plan instead of a fragment — fewer round-trips per intent.",
+      "evidence": [
+        "Code blocks in 210 of 700 questions (~30%), almost all in the later months",
+        "210 multi-step prompts (numbered 1./2./3. plans)",
+        "Codex prompts carried code slightly more often than Claude (33% vs 29%)"
+      ]
+    },
+    "mastery": {
+      "narrative": "Some topics you asked about intensely, then stopped — a sign you internalized them and moved on.",
+      "evidence": [
+        "'git' and 'pip' questions cluster in 2026-02 ~ 2026-03, then disappear",
+        "'docker' carries from setup (Feb) into the CI discussions (Apr), then fades",
+        "Later topics (latency, throughput, sharding) only appear once the basics are gone"
+      ]
+    },
+    "clusters": {
+      "narrative": "Three seasons of work surface on their own: a setup season, a comparison season, and a scale season.",
+      "evidence": [
+        "Setup: docker, git, pip, venv, npm",
+        "Reliability/compare: kubernetes, redis, postgres, ci, cache",
+        "Scale/design: latency, throughput, architecture, sharding, availability"
+      ]
+    }
+  },
+  "chapters": [
+    {
+      "title": "Getting set up",
+      "period": "2026-02 ~ 2026-03",
+      "narrative": "Short, practical questions — installing tools, fixing startup errors, basic git. Average ~34 characters. You were learning the terrain."
+    },
+    {
+      "title": "Weighing the options",
+      "period": "2026-04",
+      "narrative": "Questions doubled in length and turned comparative: kubernetes vs a VM, redis vs memcached, and the first 'why is this slower?'. You started asking for trade-offs."
+    },
+    {
+      "title": "Designing for scale",
+      "period": "2026-05 ~ 2026-06",
+      "narrative": "Multi-step specs with code blocks, latency budgets, and 99.9% availability targets. You set the goals, asked for trade-offs, and made the AI verify its own plan."
+    }
+  ],
+  "cards": [
+    { "headline": "700", "stat": "questions analyzed", "caption": "Claude Code + Codex · Feb–Jun 2026" },
+    { "headline": "8×", "stat": "longer questions", "caption": "34 → 272 characters each" },
+    { "headline": "238", "stat": "trade-off prompts", "caption": "you started weighing options, not just asking" },
+    { "headline": "docker → latency", "stat": "topic shift", "caption": "from setup basics to system design" }
+  ],
+  "next_bearings": [
+    {
+      "title": "Bring code context in earlier",
+      "why": "Code blocks show up in ~30% of questions, but almost all of them are in the later months — the early asks were context-light.",
+      "how": "Paste the error and the relevant file at the start of a question to cut the back-and-forth before the AI has enough to work with."
+    },
+    {
+      "title": "Pressure-test more, not just verify",
+      "why": "Verification asks reached 210, but counter-questions ('why not…', 'rationale') stayed low at 70 — you check answers more than you challenge them.",
+      "how": "After a proposal, ask 'why not the simpler option?' to force the AI to defend the design before you commit to it."
+    }
+  ]
+}
