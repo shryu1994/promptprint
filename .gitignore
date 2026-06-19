@@ -12,10 +12,6 @@ report*.html
 __pycache__/
 *.pyc
 *.pyo
-.preview/
-# 로컬 dev 환경·도구 파일 (배포 제외)
-.claude/
-.brain/
 
 # 로컬 전용 문서·작업 노트 (배포 제외)
 docs/
