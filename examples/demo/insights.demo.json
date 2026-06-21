@@ -2,7 +2,7 @@
   "schema_version": "1",
   "lang": "en",
   "headline": "From one-line asks to multi-step system design",
-  "summary": "Over five months (Feb–Jun 2026) you asked 700 questions across Claude Code and Codex. It started with short \"how do I…\" lookups — roughly 34 characters each — and by late spring the average question grew to ~272 characters: multi-step specs with code blocks and explicit goals. The vocabulary moved with it, from setup basics (docker, git, pip) to system concerns (latency, cache, throughput). And the way you work with the AI matured — 238 trade-off/critique prompts and 210 verification checks: you started directing and pressure-testing answers, not just dictating tasks. (This is a sample report built from synthetic data.)",
+  "summary": "Over five months (Feb–Jun 2026) you asked 700 questions across Claude Code and Codex. It started with short \"how do I…\" lookups — roughly 34 characters each — and by late spring the average question grew to ~272 characters: multi-step specs with code blocks and explicit goals. The vocabulary moved with it, from setup basics (docker, git, pip) to system concerns (latency, cache, throughput). And the way you work with the AI matured — 300 trade-off/critique prompts and 270 verification checks: you started directing and pressure-testing answers, not just dictating tasks. (This is a sample report built from synthetic data.)",
   "dimensions": {
     "topic_evolution": {
       "narrative": "Your questions migrated from 'how do I set this up' to 'how should this system behave under load'. The early months are full of tooling basics; by May the top terms are almost entirely about runtime behavior.",
@@ -23,17 +23,17 @@
     "metaskill": {
       "narrative": "You went from taking dictation to running the room — asking for trade-offs, demanding verification, and delegating the final call while keeping the reasoning visible.",
       "evidence": [
-        "Critique / trade-off prompts: 238",
-        "Verification asks ('verify', 'are you sure', 'double-check'): 210",
-        "Delegation ('your call', 'you decide'): 140; counter-questions ('why not', 'rationale'): 70"
+        "Critique / trade-off prompts: 300",
+        "Verification asks ('verify', 'are you sure', 'double-check'): 270",
+        "Delegation ('your call', 'you decide'): 180; counter-questions ('why not', 'rationale'): 90"
       ]
     },
     "craft": {
       "narrative": "Your prompts became self-contained: code blocks for context and numbered steps that hand the AI a plan instead of a fragment — fewer round-trips per intent.",
       "evidence": [
-        "Code blocks in 210 of 700 questions (~30%), almost all in the later months",
-        "210 multi-step prompts (numbered 1./2./3. plans)",
-        "Codex prompts carried code slightly more often than Claude (33% vs 29%)"
+        "Code blocks in 270 of 700 questions (~39%), almost all in the later months",
+        "270 multi-step prompts (numbered 1./2./3. plans)",
+        "Codex prompts carried code slightly more often than Claude (43% vs 37%)"
       ]
     },
     "mastery": {
@@ -73,18 +73,18 @@
   "cards": [
     { "headline": "700", "stat": "questions analyzed", "caption": "Claude Code + Codex · Feb–Jun 2026" },
     { "headline": "8×", "stat": "longer questions", "caption": "34 → 272 characters each" },
-    { "headline": "238", "stat": "trade-off prompts", "caption": "you started weighing options, not just asking" },
+    { "headline": "300", "stat": "trade-off prompts", "caption": "you started weighing options, not just asking" },
     { "headline": "docker → latency", "stat": "topic shift", "caption": "from setup basics to system design" }
   ],
   "next_bearings": [
     {
       "title": "Bring code context in earlier",
-      "why": "Code blocks show up in ~30% of questions, but almost all of them are in the later months — the early asks were context-light.",
+      "why": "Code blocks show up in ~39% of questions, but almost all of them are in the later months — the early asks were context-light.",
       "how": "Paste the error and the relevant file at the start of a question to cut the back-and-forth before the AI has enough to work with."
     },
     {
       "title": "Pressure-test more, not just verify",
-      "why": "Verification asks reached 210, but counter-questions ('why not…', 'rationale') stayed low at 70 — you check answers more than you challenge them.",
+      "why": "Verification asks reached 270, but counter-questions ('why not…', 'rationale') stayed low at 90 — you check answers more than you challenge them.",
       "how": "After a proposal, ask 'why not the simpler option?' to force the AI to defend the design before you commit to it."
     }
   ]
