@@ -1,6 +1,10 @@
 ---
 name: promptprint
-description: 내가 AI 코딩 에이전트(Claude Code·Codex)에게 던진 질문들을 100% 로컬에서 분석해, 질문하는 전문성이 시간에 따라 어떻게 성장했는지 리포트로 보여준다. "내 질문 분석", "질문 성장", "Promptprint", "나의 프롬프트 회고" 같은 요청에 사용.
+description: >-
+  Analyze the questions you've asked your AI coding agents (Claude Code, Codex)
+  100% locally and show how your questioning skill has grown over time, as a
+  shareable report. Use for requests like 'analyze my questions', 'how my
+  prompting grew', 'Promptprint', or 'my prompt retrospective'.
 ---
 
 # Promptprint

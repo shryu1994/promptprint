@@ -5,7 +5,7 @@
     {
       "name": "promptprint",
       "source": "./",
-      "description": "질문 로그로 보는 나의 전문성 성장 — 100% 로컬, 의존성 0."
+      "description": "See how your questioning skill grew up — 100% local, zero dependencies."
     }
   ]
 }
