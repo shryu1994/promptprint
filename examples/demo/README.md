@@ -1,7 +1,7 @@
 # Demo (synthetic data)
 
-This folder holds the **100% synthetic** data behind the live demo report linked
-from the project homepage. It is **not real user data** — every question here is
+This folder holds the **100% synthetic** data behind the
+[live demo report](https://sh-ryu.com/promptprint/). It is **not real user data** — every question here is
 fabricated to model a believable five-month growth arc, so the demo can be shown
 publicly without exposing anyone's prompts.
 

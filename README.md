@@ -8,6 +8,10 @@ Promptprint reads the **questions you've asked your AI coding agents** — Claud
 
 Everything runs on your own machine. It's open source, so "your data never leaves your computer" is something you can verify in the code — not just take on trust.
 
+[![Promptprint demo report — a field journal of how your questions to AI coding agents grew over five months](examples/demo/report-preview.png)](https://sh-ryu.com/promptprint/)
+
+**▶ [See the live demo report →](https://sh-ryu.com/promptprint/)** — built from 100% synthetic data, no real prompts.
+
 ## What you get
 
 A single self-contained HTML report — a scrollable story with inline charts — plus a few **shareable cards** you can save as images. The report is written in your own language.
