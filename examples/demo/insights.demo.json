@@ -71,10 +71,26 @@
     }
   ],
   "cards": [
-    { "headline": "700", "stat": "questions analyzed", "caption": "Claude Code + Codex · Feb–Jun 2026" },
-    { "headline": "8×", "stat": "longer questions", "caption": "34 → 272 characters each" },
-    { "headline": "300", "stat": "trade-off prompts", "caption": "you started weighing options, not just asking" },
-    { "headline": "docker → latency", "stat": "topic shift", "caption": "from setup basics to system design" }
+    {
+      "headline": "0% → 75%",
+      "stat": "ask-to-verify rate",
+      "caption": "In Feb you never asked the AI to check itself; by Jun, 3 in 4 questions did."
+    },
+    {
+      "headline": "39%",
+      "stat": "code-context attach rate",
+      "caption": "You hand the AI real code now, not just descriptions of it."
+    },
+    {
+      "headline": "0% → 50%",
+      "stat": "delegate rate",
+      "caption": "From dictating every step to letting the AI decide on half."
+    },
+    {
+      "headline": "docker → latency",
+      "stat": "topic shift",
+      "caption": "From setup basics to system design."
+    }
   ],
   "next_bearings": [
     {
