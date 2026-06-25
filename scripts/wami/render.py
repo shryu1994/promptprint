@@ -738,8 +738,8 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
             '<div class="top-nav">\n'
             f'  <div class="mark">{_esc(title)}</div>\n'
             '  <nav>\n'
+            f'    <a href="#bearings">{_lbl(L,"nav_bearings")}</a>\n'
             f'    <a href="#chart">{_lbl(L,"nav_chart")}</a>\n'
-            f'    <a href="#dims">{_lbl(L,"nav_bearings")}</a>\n'
             f'    <a href="#cards">{_lbl(L,"nav_cards")}</a>\n'
             '  </nav>\n'
             '</div>\n'
@@ -828,8 +828,10 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
             '</section>\n'
         ),
     }
+    # 처방(bearings·skills)을 hero 직후로 — 회고가 1회용으로 끝나지 않게 "다음에 뭘 할까"를 앞세운다
+    # (페르소나 피드백: 처방이 실제로 쓰이는 부분, 성장-회고는 곁가지). 회고(chart·chapters·dims)는 뒤로.
     # skills 섹션은 제안이 있을 때만(빈 헤딩 방지). social 은 policy 로 이미 제외.
-    order = ("hero", "chart", "chapters", "dims", "cards", "bearings", "skills")
+    order = ("hero", "bearings", "skills", "chart", "chapters", "dims", "cards")
     body = "".join(
         section_html[k]
         for k in order
