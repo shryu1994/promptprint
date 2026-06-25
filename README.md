@@ -1,12 +1,14 @@
 # Promptprint
 
-> *see how your questions grew up.*
+> *Your AI coding agent gets the credit. Promptprint shows how good* **you** *got at asking — and what to fix next.*
 
 [![CI](https://github.com/shryu1994/promptprint/actions/workflows/ci.yml/badge.svg)](https://github.com/shryu1994/promptprint/actions/workflows/ci.yml)
 
-Promptprint reads the **questions you've asked your AI coding agents** — Claude Code and Codex — and shows how your *questioning skill* has grown over time. Think Spotify Wrapped, but for your prompts.
+Promptprint reads the **questions you've sent your AI coding agents** (Claude Code, Codex), 100% on your own machine, and measures the one thing nothing else does: **how *you* ask — and how that's changing.**
 
-Everything runs on your own machine. It's open source, so "your data never leaves your computer" is something you can verify in the code — not just take on trust.
+Every other tool measures your *agent* — tokens, cost, lines accepted, streaks. The year-end "AI Wrapped" recaps are a card you open once. This is different: a **recurring check** on your questioning skill that ends with *what to change next*, not a number to feel good about.
+
+It's open source and offline by design, so "your data never leaves your computer" is something you can **verify in the code** (`bash verify.sh`) — not take on trust.
 
 [![Promptprint demo report — a field journal of how your questions to AI coding agents grew over five months](examples/demo/report-preview.png)](https://sh-ryu.com/promptprint/)
 
@@ -14,9 +16,9 @@ Everything runs on your own machine. It's open source, so "your data never leave
 
 ## What you get
 
-A single self-contained HTML report — a scrollable story with inline charts — plus a few **shareable cards** you can save as images. The report is written in your own language.
+**A recurring check — the one you actually re-run.** `/promptprint check` compares your last 30 days to the 30 before: what moved in *how you ask* (verifying more? directing more? fewer round-trips per task?), what new ground you're on, and — most useful — **the repeated work you keep re-explaining, ready to turn into a skill** instead of pasting it again. Length-robust rates, not flattering raw counts.
 
-It covers six dimensions of growth:
+**A growth report** — a single self-contained HTML field journal (+ shareable cards), in your own language. It opens with **what to do next** — next bearings, and skills to create from the repeated work in your logs (each with a ready-to-paste `/skill-creator` seed and an *honest, measured* saving estimate: the counts are real, the saving is flagged as an estimate with its assumptions shown) — then the retrospective, across six dimensions of growth:
 
 | Dimension | What it captures |
 |---|---|
@@ -27,7 +29,7 @@ It covers six dimensions of growth:
 | **Mastery** | Topics you once asked about intensely, then *graduated* from |
 | **Your phases** | Clusters the tool finds in your data — your own seasons of work |
 
-Beyond the retrospective, the report closes with **skills to build** — repeated, re-explained tasks it spots in your logs, each with a ready-to-paste seed for `/skill-creator` and an *honest, measured* estimate of what automating it would save (the counts are real; the saving is flagged as an estimate, with its assumptions shown).
+Two speeds, same local data: the check for a quick nudge between sessions, the full report when you want the whole arc.
 
 ## Install
 
