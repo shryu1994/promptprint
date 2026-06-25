@@ -48,6 +48,23 @@ description: >-
    **집계와 동일한 `--template`을 쓰세요.** social은 카드 중심으로, corporate는 원문 인용 없이 렌더됩니다(불일치 시 경고).
    완료되면 사용자에게 `promptprint-report.html`을 브라우저로 열어 보라고 안내합니다. 공유 카드는 리포트 안의 "이미지로 저장" 버튼으로 내려받습니다.
 
+## 수시 점검 (delta) — 재실행용 짧은 모드
+
+"요즘 어떻게 달라졌어?" · "promptprint check" 류의 *재실행* 요청이면, 연 1회 회고(위 6차원 전체) 대신 **최근 N일 vs 그 전 N일** 변화만 빠르게 보여줍니다(가벼운 대화형, 큰 HTML 리포트 없이). 회고가 1회용으로 끝나지 않게 하는 *수시·처방* 모드입니다.
+
+1. 델타 계산(결정적, LLM 아님):
+   ```bash
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}/scripts" python3 -m wami.cli delta --window 30 --out "$PWD/delta.json"
+   ```
+   윈도우는 `--window 14`처럼 조절. 기준일은 마지막 로그 날짜 자동(`--as-of`로 고정 가능).
+
+2. `$PWD/delta.json`을 읽고, **변한 것 + 처방을 앞세워** 짧게 서술합니다(회고 아님, *코치* 톤):
+   - **무엇이 움직였나(길이에 강건):** `deltas.metaskill_rate`(verify·critique·delegate·counter, per-message 비율 변화 pp)와 `deltas.code_block_rate`·`deltas.q_per_session`. **"verify가 +18%p"처럼 *비율*로 말하고, 질문 수 폭증(`deltas.total`)으로 성장을 단정하지 마라 — 비율이 진짜 신호다.**
+   - **다음에 뭘 할까(처방, 헤드라인):** `skill_candidates`(최근 반복·재설명 노역)에서 1~2개 → "X를 N번 재설명 중 → `/skill-creator`로 스킬화"처럼 *데이터 정박·실행가능*하게. 처방을 앞에, 회고는 곁가지.
+   - **새/사라진 관심:** `new_topics`·`dropped_topics` 한 줄.
+   - ⚠️ `recent.total`·`prior.total`이 크게 불균형이면(휴지기/폭증) 비율만 신뢰하고 절대수 비교는 신중히. 데이터 적으면 과장 금지(신뢰성이 이 도구의 핵심).
+   - 사용자 언어로. "지난 N일 동안 너는 ~를 더/덜 했고, 다음 한 가지는 ~." 한 화면에 끝나게.
+
 ## 6차원 해석 가이드
 
 각 차원은 `dimensions.<key>`에 `{ "narrative": 한두 문단, "evidence": [실제 수치/인용 1개 이상] }`로 씁니다.

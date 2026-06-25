@@ -9,6 +9,7 @@ from wami.adapters import ADAPTERS
 from wami.aggregate import build_aggregates
 from wami.insights import validate_insights
 from wami.render import build_report_html
+from wami.delta import build_delta
 
 
 def run_aggregate(roots_by_tool: Optional[Dict[str, List[str]]], out_path: str,
@@ -19,6 +20,37 @@ def run_aggregate(roots_by_tool: Optional[Dict[str, List[str]]], out_path: str,
     with open(out_path, "w", encoding="utf-8") as fh:
         json.dump(agg, fh, ensure_ascii=False, indent=2, sort_keys=True)
     return agg
+
+
+def _resolve_roots(args):
+    """--claude/--codex/--tools/--tool-roots → roots dict (None=전체 기본 경로).
+
+    Returns (roots, err_code). err_code 가 None 이 아니면 호출자는 그대로 return 한다.
+    aggregate·delta 가 공유한다."""
+    if getattr(args, "claude", None) == []:
+        args.claude = None
+    if getattr(args, "codex", None) == []:
+        args.codex = None
+    overrides = {}
+    if getattr(args, "claude", None) is not None:
+        overrides["claude"] = args.claude
+    if getattr(args, "codex", None) is not None:
+        overrides["codex"] = args.codex
+    if getattr(args, "tool_roots", None):
+        for spec in args.tool_roots:
+            tool, sep, path = spec.partition(":")
+            if not sep or tool not in ADAPTERS:
+                print(f"--tool-roots 형식 오류 또는 알 수 없는 도구: {spec!r} (가능: {sorted(ADAPTERS)})",
+                      file=sys.stderr)
+                return None, 2
+            overrides.setdefault(tool, []).append(path)
+    if getattr(args, "tools", None) is not None:
+        roots = {t: (overrides.get(t) or ADAPTERS[t]().default_roots()) for t in args.tools}
+    elif overrides:
+        roots = overrides
+    else:
+        roots = None
+    return roots, None
 
 
 def main(argv=None):
@@ -36,6 +68,18 @@ def main(argv=None):
     pa.add_argument("--tool-roots", action="append", default=None, metavar="TOOL:PATH",
                     help="도구별 로그 경로 지정(반복 가능, 모든 도구 지원). 예: --tool-roots jan:/path/to/threads")
 
+    pd = sub.add_parser("delta", help="최근 N일 vs 그 전 N일 행동 변화(수시 점검)")
+    pd.add_argument("--out", default="delta.json", help="출력 경로")
+    pd.add_argument("--window", type=int, default=30, help="윈도우 일수(기본 30)")
+    pd.add_argument("--as-of", dest="as_of", default=None,
+                    help="기준일 YYYY-MM-DD(생략 시 마지막 로그 날짜)")
+    pd.add_argument("--claude", nargs="*", default=None, help="Claude 로그 루트")
+    pd.add_argument("--codex", nargs="*", default=None, help="Codex 로그 루트")
+    pd.add_argument("--tools", nargs="+", choices=sorted(ADAPTERS), default=None,
+                    help="포함할 도구 선택(생략 시 전체)")
+    pd.add_argument("--tool-roots", action="append", default=None, metavar="TOOL:PATH",
+                    help="도구별 로그 경로 지정(반복 가능)")
+
     pv = sub.add_parser("validate-insights", help="insights.json 구조 검증")
     pv.add_argument("path", help="검증할 insights.json 경로")
 
@@ -49,35 +93,9 @@ def main(argv=None):
     args = p.parse_args(argv)
     if args.cmd == "aggregate":
         print("Network: DISABLED · reading ~/.claude, ~/.codex (read-only) · output stays local", file=sys.stderr)
-        # Normalize empty list (flag given with no values) to None → use default paths
-        if args.claude == []:
-            args.claude = None
-        if args.codex == []:
-            args.codex = None
-
-        # 명시적 경로 오버라이드(도구별)
-        overrides = {}
-        if args.claude is not None:
-            overrides["claude"] = args.claude
-        if args.codex is not None:
-            overrides["codex"] = args.codex
-        # 범용 도구별 경로 (모든 어댑터 지원)
-        if args.tool_roots:
-            for spec in args.tool_roots:
-                tool, sep, path = spec.partition(":")
-                if not sep or tool not in ADAPTERS:
-                    print(f"--tool-roots 형식 오류 또는 알 수 없는 도구: {spec!r} (가능: {sorted(ADAPTERS)})",
-                          file=sys.stderr)
-                    return 2
-                overrides.setdefault(tool, []).append(path)
-
-        if args.tools is not None:
-            # 선택한 도구만 — 오버라이드 경로 없으면 그 도구 기본 경로
-            roots = {t: (overrides.get(t) or ADAPTERS[t]().default_roots()) for t in args.tools}
-        elif overrides:
-            roots = overrides
-        else:
-            roots = None  # 전체 도구, 기본 경로
+        roots, err = _resolve_roots(args)
+        if err:
+            return err
 
         # Stage 1: extract
         print("로그를 스캔하는 중…", file=sys.stderr)
@@ -118,6 +136,28 @@ def main(argv=None):
             print(f"  기간: {dr[0]} ~ {dr[1]}", file=sys.stderr)
         else:
             print("  기간: (레코드 없음)", file=sys.stderr)
+        return 0
+
+    if args.cmd == "delta":
+        print("Network: DISABLED · reading ~/.claude, ~/.codex (read-only) · output stays local", file=sys.stderr)
+        roots, err = _resolve_roots(args)
+        if err:
+            return err
+        print("로그를 스캔하는 중…", file=sys.stderr)
+        records = extract_records(roots)
+        d = build_delta(records, window_days=args.window, as_of=args.as_of)
+        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(d, fh, ensure_ascii=False, indent=2, sort_keys=True)
+        if d.get("empty"):
+            print("로그를 찾지 못해 델타를 계산할 수 없습니다.", file=sys.stderr)
+            print(f"빈 델타 저장 → {args.out}", file=sys.stderr)
+            return 0
+        r, pr = d["recent"], d["prior"]
+        print(f"델타 저장 → {args.out}  (기준일 {d['as_of']}, 윈도우 {d['window_days']}일)", file=sys.stderr)
+        print(f"  최근 {r['total']}개 vs 직전 {pr['total']}개 질문 · 세션당 {r['q_per_session']} vs {pr['q_per_session']}",
+              file=sys.stderr)
+        print(f"  스킬화 후보(반복 노역) {len(d['skill_candidates'])}건", file=sys.stderr)
         return 0
 
     if args.cmd == "validate-insights":
