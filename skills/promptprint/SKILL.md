@@ -19,8 +19,8 @@ description: >-
 
 0. **대상(템플릿) 선택** — 누구에게 보여줄 리포트인지 사용자에게 먼저 묻고, 그 값(`personal`/`corporate`/`social`)을 **집계·렌더 양쪽에 동일하게** 넘깁니다. 템플릿이 데이터 정제 수준까지 결정합니다:
    - `personal` (개인 확인용): 전체 — 원문·프로젝트명 그대로.
-   - `corporate` (사내 보고용): **원문 질문 제거 + 프로젝트명 익명화** — 성장 지표·추세만 남겨 사내 공유에 안전.
-   - `social` (SNS 공유용): 카드 중심, 식별정보 0.
+   - `corporate` (사내 보고용): **원문 질문 제거 + 프로젝트명 익명화** — 성장 지표·추세만 남겨 사내 공유에 안전. 리포트 hero에 **공유 안전 영수증**(원문 N건 제거·프로젝트명 M개 익명화·네트워크 0)이 자동 표시돼 "안전하게 공유 가능"을 *증명*합니다(`samples.redaction`).
+   - `social` (SNS 공유용): 카드 중심, 식별정보 0. (공유 안전 영수증 동일 적용)
 
 1. **결정적 집계** — 로그를 읽어 통계를 뽑습니다(LLM이 아니라 스크립트가, 매번 동일하게). `--template`에 0단계 값을 넣으세요 — **corporate/social이면 여기서 원문이 제거돼 LLM도 원문을 보지 않습니다**(프라이버시가 집계 단계에서 강제됨):
    ```bash
@@ -28,7 +28,7 @@ description: >-
    ```
    특정 도구만 보려면 `--tools claude codex`처럼 선택하고(생략 시 전체), 커스텀 경로는 `--claude <경로...>`/`--codex <경로...>`로 지정합니다. 기본 경로는 `~/.claude/projects`·`~/.codex`.
 
-2. **`$PWD/aggregates.json`을 읽습니다.** 9개 섹션(`meta, activity, shape, topics, metaskill, mastery, skill_candidates, tool_compare, samples`)이 있습니다. **수만 개 질문 전수가 아니라**, `samples.stratified`(대표 질문)와 집계 수치만 근거로 삼으세요. 그게 이 도구의 설계입니다(컨텍스트·비용 절약).
+2. **`$PWD/aggregates.json`을 읽습니다.** 11개 섹션(`meta, activity, shape, topics, metaskill, mastery, skill_candidates, session_shape, genre_mix, tool_compare, samples`)이 있습니다. **수만 개 질문 전수가 아니라**, `samples.stratified`(대표 질문)와 집계 수치만 근거로 삼으세요. 그게 이 도구의 설계입니다(컨텍스트·비용 절약). (`session_shape`=세션당 왕복수·원샷률, `genre_mix`=질문 의도 택소노미, `samples.redaction`=공유 안전 영수증.)
 
 3. **6개 차원을 해석해 `$PWD/insights.json`을 만듭니다.** (아래 "6차원 해석 가이드"와 "출력 스키마"를 따르세요.)
    - ⚠️ **corporate/social이면 evidence·narrative에 원문 질문을 인용하지 마세요 — 지표·추세만.** (집계가 이미 원문을 제거했고, 렌더가 인용을 한 번 더 걸러냅니다.) 이때 `depth`는 질문 인용 대신 `shape.avg_len_by_month`·코드블록률 같은 구조 지표로 해석합니다.

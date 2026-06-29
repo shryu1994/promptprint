@@ -330,6 +330,21 @@ class AggregateTemplateRedactionTest(unittest.TestCase):
         self.assertNotIn("sk-abc123XYZ", blob)
         self.assertNotIn("billing-svc", blob)
 
+    def test_redaction_receipt_personal_zero(self):
+        agg = build_aggregates(self._recs())  # personal
+        rec = agg["samples"]["redaction"]
+        self.assertFalse(rec["redacted"])
+        self.assertEqual(rec["raw_texts_removed"], 0)
+        self.assertEqual(rec["projects_anonymized"], 0)
+
+    def test_redaction_receipt_corporate_counts(self):
+        agg = build_aggregates(self._recs(), template="corporate")
+        rec = agg["samples"]["redaction"]
+        self.assertTrue(rec["redacted"])
+        # 두 샘플(billing-svc, api-gateway) 원문 제거 + 프로젝트명 2개 익명화
+        self.assertEqual(rec["raw_texts_removed"], 2)
+        self.assertEqual(rec["projects_anonymized"], 2)
+
 
 class AggregateGenreMixTest(unittest.TestCase):
     """질문 장르 믹스 — '무엇을 묻는가' 택소노미(공유성 높음)."""

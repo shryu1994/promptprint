@@ -66,6 +66,42 @@ class RedactSamplesTest(unittest.TestCase):
         self.assertEqual(s[0]["text"], "fix /Users/me/secret with key sk-abc123")  # 원본 보존
 
 
+class RedactionSummaryTest(unittest.TestCase):
+    """정제 영수증 — 실제 정제 동작을 정직하게 카운트(탐지 우기기 금지)."""
+
+    def _samples(self):
+        return [
+            {"project": "billing-svc", "text": "raw one"},
+            {"project": "api-gw", "text": "raw two"},
+            {"project": "billing-svc", "text": "raw three"},
+            {"project": None, "text": "   "},   # 공백만 → 원문 없음으로 카운트 제외
+        ]
+
+    def test_personal_no_redaction(self):
+        s = R.redaction_summary(self._samples(), "personal")
+        self.assertFalse(s["redacted"])
+        self.assertEqual(s["raw_texts_removed"], 0)
+        self.assertEqual(s["projects_anonymized"], 0)
+        self.assertEqual(s["template"], "personal")
+
+    def test_corporate_counts(self):
+        s = R.redaction_summary(self._samples(), "corporate")
+        self.assertTrue(s["redacted"])
+        self.assertEqual(s["raw_texts_removed"], 3)     # 공백만인 1건 제외
+        self.assertEqual(s["projects_anonymized"], 2)   # billing-svc, api-gw
+
+    def test_social_counts(self):
+        s = R.redaction_summary(self._samples(), "social")
+        self.assertTrue(s["redacted"])
+        self.assertEqual(s["raw_texts_removed"], 3)
+        self.assertEqual(s["projects_anonymized"], 2)
+
+    def test_unknown_falls_back_personal(self):
+        s = R.redaction_summary(self._samples(), "bogus")
+        self.assertFalse(s["redacted"])
+        self.assertEqual(s["raw_texts_removed"], 0)
+
+
 class StripQuotesTest(unittest.TestCase):
     def test_strips_double_and_curly(self):
         self.assertNotIn("how do I", R.strip_quotes('he asked "how do I run docker?" yesterday'))

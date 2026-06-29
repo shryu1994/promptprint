@@ -114,6 +114,29 @@ class RenderTest(unittest.TestCase):
         out = build_report_html(self.insights, agg)
         self.assertNotIn("질문 장르", out)
 
+    def test_trust_receipt_shown_when_redacted(self):
+        """corporate/social(redacted)이면 공유 안전 영수증이 hero에 나와야 한다."""
+        agg = json.loads(json.dumps(self.aggregates))
+        agg.setdefault("samples", {})["redaction"] = {
+            "template": "corporate", "redacted": True,
+            "raw_texts_removed": 23, "projects_anonymized": 5,
+        }
+        out = build_report_html(self.insights, agg, template="corporate")
+        self.assertIn("공유 안전", out)
+        self.assertIn("원문 질문 제거 23", out)
+        self.assertIn("프로젝트명 익명화 5", out)
+        self.assertIn("네트워크 0", out)
+
+    def test_trust_receipt_absent_for_personal(self):
+        """personal(정제 0)이면 영수증을 그리지 않는다."""
+        agg = json.loads(json.dumps(self.aggregates))
+        agg.setdefault("samples", {})["redaction"] = {
+            "template": "personal", "redacted": False,
+            "raw_texts_removed": 0, "projects_anonymized": 0,
+        }
+        out = build_report_html(self.insights, agg, template="personal")
+        self.assertNotIn("공유 안전", out)
+
     def test_has_next_bearings(self):
         # 다음 항로 label appears in the HTML (Korean default)
         self.assertIn("다음 항로", self.html)

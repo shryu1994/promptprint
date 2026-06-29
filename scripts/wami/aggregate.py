@@ -390,7 +390,12 @@ def _stratified_samples(records: List[QuestionRecord], template: str = "personal
             picks = [items[i] for i in idxs]
         chosen.extend(picks)
     chosen.sort(key=lambda r: (r.ts, r.tool, r.turn_idx))
-    return {"stratified": redact.redact_samples([record_to_dict(r) for r in chosen], template)}
+    chosen_dicts = [record_to_dict(r) for r in chosen]
+    return {
+        "stratified": redact.redact_samples(chosen_dicts, template),
+        # 정제 영수증: 공유본에서 실제 제거/익명화한 것의 수(personal=0). 신뢰를 *기능*으로.
+        "redaction": redact.redaction_summary(chosen_dicts, template),
+    }
 
 
 def build_aggregates(records: List[QuestionRecord], template: str = "personal") -> dict:

@@ -56,6 +56,10 @@ LABELS = {
         "genre_mix_label": "질문 장르",
         "genre_labels":   {"debug": "디버그", "build": "구현", "understand": "이해",
                            "improve": "개선", "other": "기타"},
+        "trust_share_safe":    "공유 안전",
+        "trust_texts_removed": "원문 질문 제거",
+        "trust_projects_anon": "프로젝트명 익명화",
+        "trust_no_network":    "네트워크 0",
     },
     "en": {
         "nav_chart":      "Chart",
@@ -100,6 +104,10 @@ LABELS = {
         "genre_mix_label": "Question genres",
         "genre_labels":   {"debug": "Debug", "build": "Build", "understand": "Understand",
                            "improve": "Improve", "other": "Other"},
+        "trust_share_safe":    "Safe to share",
+        "trust_texts_removed": "raw questions removed",
+        "trust_projects_anon": "project names anonymized",
+        "trust_no_network":    "zero network",
     },
 }
 
@@ -233,6 +241,30 @@ def _genre_mix_html(gm: dict, L=None) -> str:
     return (
         '<p class="surge-annotation" style="margin-top:6px;opacity:.78;">'
         f'{txt}</p>'
+    )
+
+
+def _trust_receipt_html(redaction: dict, L=None) -> str:
+    """공유 안전 영수증 — corporate/social 에서만. 정제로 *실제 제거한* 수치 + 무네트워크.
+
+    이 도구의 핵심 가치(신뢰)를 claim 이 아니라 receipt 로 보인다(브랜드=receipts).
+    탐지 우기지 않고 한 일만: 원문 N건 제거 · 프로젝트명 M개 익명화 · 네트워크 0.
+    personal(정제 0)이면 아무것도 안 그린다."""
+    L = L or LABELS["ko"]
+    r = redaction or {}
+    if not r.get("redacted"):
+        return ""
+    parts = [
+        f'{_lbl(L, "trust_texts_removed")} {_fmt_int(r.get("raw_texts_removed", 0))}',
+        f'{_lbl(L, "trust_projects_anon")} {_fmt_int(r.get("projects_anonymized", 0))}',
+        _lbl(L, "trust_no_network"),
+    ]
+    return (
+        '<div class="trust-receipt" style="margin-top:18px;'
+        'font-family:ui-monospace,Menlo,monospace;font-size:11px;'
+        'letter-spacing:.04em;opacity:.72;">'
+        f'✓ {_lbl(L, "trust_share_safe")} — ' + " · ".join(parts) +
+        '</div>'
     )
 
 
@@ -750,6 +782,10 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
     # ── genre mix (질문 의도 택소노미 — 공유성 높음) ─────────────────────────────
     genre_mix_html = _genre_mix_html(aggregates.get("genre_mix", {}), L)
 
+    # ── trust receipt (공유 안전 — 정제로 실제 제거한 수치, corporate/social) ──────
+    trust_receipt_html = _trust_receipt_html(
+        aggregates.get("samples", {}).get("redaction", {}), L)
+
     # ── dimensions ────────────────────────────────────────────────────────────
     dims = insights.get("dimensions", {})
     dim_blocks = []
@@ -814,6 +850,7 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
             'style="animation:lineGrow .8s .7s cubic-bezier(.16,1,.3,1) both;"></div>\n'
             f'  <p class="hero-summary anim-fadeup d5">{_esc(insights.get("summary",""))}</p>\n'
             f'  <div class="hero-meta anim-fadeup d6">{hero_meta_html}</div>\n'
+            f'  {trust_receipt_html}\n'
             '</div>\n'
             '</section>\n'
         ),

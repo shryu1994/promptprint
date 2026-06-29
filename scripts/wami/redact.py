@@ -69,6 +69,30 @@ def redact_samples(stratified, template):
     return out
 
 
+def redaction_summary(stratified, template) -> dict:
+    """정제 영수증 — 공유본(corporate/social)에서 *실제로 한 일*을 카운트한다.
+
+    탐지(예: '시크릿 N건 발견')가 아니라 정제 동작을 그대로 센다(과장 금지·정직):
+      raw_texts_removed   = 원문이 비워진 샘플 질문 수(drop_text)
+      projects_anonymized = project-N 라벨로 익명화된 서로 다른 프로젝트 수(anon_project)
+    personal 은 정제 0(receipt 없음). 입력 비파괴·결정적."""
+    pol = _POLICY[_norm(template)]
+    raw_texts_removed = (
+        sum(1 for s in stratified if (s.get("text") or "").strip())
+        if pol["drop_text"] else 0
+    )
+    projects_anonymized = (
+        len({s.get("project") for s in stratified if s.get("project")})
+        if pol["anon_project"] else 0
+    )
+    return {
+        "template": _norm(template),
+        "redacted": is_redacted(template),
+        "raw_texts_removed": raw_texts_removed,
+        "projects_anonymized": projects_anonymized,
+    }
+
+
 # 큰/곱은따옴표로 둘러싼 인용 덩어리는 제거한다. 홑따옴표는 '인용처럼' 쓰일 때만 —
 # 앞뒤가 글자/숫자가 아닐 때만 — 제거해 축약형(don't)·소유격(worker's)은 보존한다.
 _QUOTE = re.compile(
