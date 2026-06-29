@@ -331,6 +331,61 @@ class AggregateTemplateRedactionTest(unittest.TestCase):
         self.assertNotIn("billing-svc", blob)
 
 
+class AggregateGenreMixTest(unittest.TestCase):
+    """질문 장르 믹스 — '무엇을 묻는가' 택소노미(공유성 높음)."""
+
+    def _recs(self):
+        return [
+            mk("2026-01-05T10:00:00+00:00", "claude", "how do I add a login button", sid="s1", turn=0),
+            mk("2026-01-06T10:00:00+00:00", "claude", "로그인 기능 구현해줘", sid="s2", turn=0),
+            mk("2026-01-07T10:00:00+00:00", "claude", "이거 왜 안 돼 에러 고쳐줘", sid="s3", turn=0),
+            mk("2026-02-01T10:00:00+00:00", "codex",  "what is a closure", sid="s4", turn=0),
+            mk("2026-02-02T10:00:00+00:00", "codex",  "ㅁㄴㅇㄹ", sid="s5", turn=0),
+        ]
+
+    def setUp(self):
+        self.gm = build_aggregates(self._recs())["genre_mix"]
+        self.by_genre = {m["genre"]: m for m in self.gm["mix"]}
+
+    def test_section_keys(self):
+        self.assertEqual(set(self.gm.keys()), {"total", "mix", "by_month"})
+
+    def test_counts_and_rates(self):
+        # build 2(button·구현), debug 1, understand 1, other 1
+        self.assertEqual(self.gm["total"], 5)
+        self.assertEqual(self.by_genre["build"]["count"], 2)
+        self.assertEqual(self.by_genre["build"]["rate"], 0.4)
+        self.assertEqual(self.by_genre["debug"]["count"], 1)
+        self.assertEqual(self.by_genre["understand"]["count"], 1)
+        self.assertEqual(self.by_genre["other"]["count"], 1)
+
+    def test_mix_sorted_by_count_desc(self):
+        counts = [m["count"] for m in self.gm["mix"]]
+        self.assertEqual(counts, sorted(counts, reverse=True))
+        self.assertEqual(self.gm["mix"][0]["genre"], "build")  # 최다
+
+    def test_rates_sum_to_one(self):
+        self.assertAlmostEqual(sum(m["rate"] for m in self.gm["mix"]), 1.0, places=2)
+
+    def test_by_month(self):
+        self.assertEqual(self.gm["by_month"]["2026-01"], {"build": 2, "debug": 1})
+        self.assertEqual(self.gm["by_month"]["2026-02"], {"understand": 1, "other": 1})
+
+    def test_no_raw_text(self):
+        # 장르 라벨+수치만 — 원문 0(corporate/social 안전).
+        blob = json.dumps(self.gm, ensure_ascii=False)
+        self.assertNotIn("login button", blob)
+        self.assertNotIn("로그인", blob)
+
+    def test_deterministic(self):
+        gm2 = build_aggregates(self._recs())["genre_mix"]
+        self.assertEqual(self.gm, gm2)
+
+    def test_empty(self):
+        gm = build_aggregates([])["genre_mix"]
+        self.assertEqual(gm, {"total": 0, "mix": [], "by_month": {}})
+
+
 class AggregateSkillCandidatesTest(unittest.TestCase):
     """기둥3: skill_candidates — 반복·비졸업·재설명비용 큰 작업의 결정적 탐지."""
 

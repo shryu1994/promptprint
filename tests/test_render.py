@@ -92,6 +92,28 @@ class RenderTest(unittest.TestCase):
         out = build_report_html(self.insights, agg)
         self.assertNotIn("세션당 평균 질문", out)
 
+    def test_genre_mix_line_in_chart(self):
+        """genre_mix가 있으면 chart 섹션에 장르 라벨+비율이 나와야 한다."""
+        agg = json.loads(json.dumps(self.aggregates))
+        agg["genre_mix"] = {
+            "total": 10,
+            "mix": [{"genre": "build", "count": 5, "rate": 0.5},
+                    {"genre": "debug", "count": 3, "rate": 0.3},
+                    {"genre": "understand", "count": 2, "rate": 0.2}],
+            "by_month": {},
+        }
+        out = build_report_html(self.insights, agg)
+        chart_region = out[out.find('id="chart"'):out.find("</section>", out.find('id="chart"'))]
+        self.assertIn("질문 장르", chart_region)
+        self.assertIn("구현 50%", chart_region)   # build → 구현, 0.5 → 50%
+        self.assertIn("디버그 30%", chart_region)
+
+    def test_genre_mix_omitted_when_empty(self):
+        agg = json.loads(json.dumps(self.aggregates))
+        agg["genre_mix"] = {"total": 0, "mix": [], "by_month": {}}
+        out = build_report_html(self.insights, agg)
+        self.assertNotIn("질문 장르", out)
+
     def test_has_next_bearings(self):
         # 다음 항로 label appears in the HTML (Korean default)
         self.assertIn("다음 항로", self.html)

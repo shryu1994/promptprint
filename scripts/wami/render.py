@@ -53,6 +53,9 @@ LABELS = {
         "sess_qps":       "세션당 평균 질문",
         "sess_oneshot":   "원샷(한 번에 끝난 세션)",
         "sess_count":     "세션",
+        "genre_mix_label": "질문 장르",
+        "genre_labels":   {"debug": "디버그", "build": "구현", "understand": "이해",
+                           "improve": "개선", "other": "기타"},
     },
     "en": {
         "nav_chart":      "Chart",
@@ -94,6 +97,9 @@ LABELS = {
         "sess_qps":       "avg questions / session",
         "sess_oneshot":   "one-shot (single-question sessions)",
         "sess_count":     "sessions",
+        "genre_mix_label": "Question genres",
+        "genre_labels":   {"debug": "Debug", "build": "Build", "understand": "Understand",
+                           "improve": "Improve", "other": "Other"},
     },
 }
 
@@ -201,6 +207,29 @@ def _session_shape_html(ss: dict, L=None) -> str:
         f'{_lbl(L or LABELS["ko"], "sess_oneshot")} {one_shot_pct}% · '
         f'{_lbl(L or LABELS["ko"], "sess_count")} {_fmt_int(n)}'
     )
+    return (
+        '<p class="surge-annotation" style="margin-top:6px;opacity:.78;">'
+        f'{txt}</p>'
+    )
+
+
+def _genre_mix_html(gm: dict, L=None) -> str:
+    """질문 장르 믹스 한 줄: '무엇을 묻는가' 택소노미(공유성 높음).
+
+    장르 라벨+비율만(원문 0) — corporate/social 안전. heuristic v1이라 단정 아닌 *분포*로
+    노출. mix가 비면 아무것도 안 그린다."""
+    L = L or LABELS["ko"]
+    mix = (gm or {}).get("mix") or []
+    glabels = L.get("genre_labels", {})
+    parts = []
+    for m in mix:
+        pct = round(m.get("rate", 0) * 100)
+        if pct <= 0:
+            continue
+        parts.append(f'{_esc(glabels.get(m.get("genre"), m.get("genre")))} {pct}%')
+    if not parts:
+        return ""
+    txt = f'{_lbl(L, "genre_mix_label")} — ' + " · ".join(parts)
     return (
         '<p class="surge-annotation" style="margin-top:6px;opacity:.78;">'
         f'{txt}</p>'
@@ -718,6 +747,9 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
     # ── session shape (세션당 왕복수·원샷률 — 바꿀 수 있는 행동 지표) ─────────────
     sess_shape_html = _session_shape_html(aggregates.get("session_shape", {}), L)
 
+    # ── genre mix (질문 의도 택소노미 — 공유성 높음) ─────────────────────────────
+    genre_mix_html = _genre_mix_html(aggregates.get("genre_mix", {}), L)
+
     # ── dimensions ────────────────────────────────────────────────────────────
     dims = insights.get("dimensions", {})
     dim_blocks = []
@@ -795,6 +827,7 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
             f'  {surge_html}\n'
             f'  <p class="surge-annotation">{_lbl(L,"chart_caption")}</p>\n'
             f'  {sess_shape_html}\n'
+            f'  {genre_mix_html}\n'
             '</div>\n'
             '</section>\n'
         ),

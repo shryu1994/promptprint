@@ -159,3 +159,39 @@ _SIGNAL_PATTERNS = {
 
 def metaskill_signals(text: str) -> dict:
     return {k: len(p.findall(text)) for k, p in _SIGNAL_PATTERNS.items()}
+
+
+# --- 질문 장르 분류 (heuristic v1) --------------------------------------------
+# 의도(무엇을 하려는가) 기준 4종 + other. 한 질문 = 정확히 한 장르(공유용 mix).
+# 결정적·양언어·투명(패턴 공개→튜닝 가능). 우선순위 = 리스트 순서(첫 매치 승):
+#   debug → improve → understand → build → other.
+# (debug 가 가장 구체적 — "구현했는데 에러" 는 debug. understand 는 개념 질문만:
+#  맨 "how" 는 build 로 — 대부분의 코딩 질문 "how do I X" 는 *하려는* 의도라서.)
+GENRES = ("debug", "build", "understand", "improve", "other")
+
+_GENRE_PATTERNS = [
+    ("debug", re.compile(
+        r"버그|에러|오류|안 ?(돼|된다|됨|되는)|왜 안|고쳐|디버그|실패|크래시|먹통|"
+        r"\bbug\b|error|\bfix\b|broken|\bfail|crash|exception|stack ?trace|"
+        r"doesn'?t work|not working|won'?t")),
+    ("improve", re.compile(
+        r"리팩|개선|정리|최적화|단순화|깔끔|느려|빠르게|"
+        r"refactor|optimi[sz]|clean ?up|simplif|improve|faster|\bperf\b|rename|tidy|streamline")),
+    ("understand", re.compile(
+        r"설명|이해|의미|차이|무엇|뭐(야|예요|죠|니|지)|왜 (그|이|저|되)|원리|어떻게 (동작|작동|돌아)|"
+        r"explain|what (is|are|does|happens)|why (does|is|are|do)|how does|"
+        r"difference between|conceptually")),
+    ("build", re.compile(
+        r"구현|만들|추가|작성|생성|짜 ?줘|스크립트|"
+        r"how (do|can|to) ?i?\b|implement|build|create|\badd\b|write |generate|make |set ?up")),
+]
+
+
+def classify_genre(text) -> str:
+    """질문을 의도 장르 하나로 분류한다(heuristic v1, 결정적). 매치 없으면 'other'."""
+    if not isinstance(text, str):
+        return "other"
+    for genre, pat in _GENRE_PATTERNS:
+        if pat.search(text):
+            return genre
+    return "other"

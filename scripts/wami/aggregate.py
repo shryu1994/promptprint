@@ -335,6 +335,29 @@ def _session_shape(records: List[QuestionRecord]) -> dict:
     }
 
 
+def _genre_mix(records: List[QuestionRecord]) -> dict:
+    """질문 의도 장르의 분포(heuristic) — '무엇을 묻는가' 택소노미(공유성 높음).
+
+    각 질문 1장르(textutil.classify_genre). 장르 라벨+수치만(원문 0) → corporate/social
+    안전. 해석은 insights LLM 몫. mix는 count 내림차순(동률은 GENRES 순). 결정적·무네트워크."""
+    total = len(records)
+    counts = Counter()
+    by_month = defaultdict(Counter)
+    for r in records:
+        g = textutil.classify_genre(r.text)
+        counts[g] += 1
+        by_month[_month(r.ts)][g] += 1
+    mix = sorted(
+        ({"genre": g, "count": c, "rate": round(c / total, 3)} for g, c in counts.items()),
+        key=lambda d: (-d["count"], textutil.GENRES.index(d["genre"])),
+    ) if total else []
+    return {
+        "total": total,
+        "mix": mix,
+        "by_month": {m: dict(c) for m, c in sorted(by_month.items())},
+    }
+
+
 def _tool_compare(records: List[QuestionRecord]) -> dict:
     out = {}
     by_tool = defaultdict(list)
@@ -384,6 +407,7 @@ def build_aggregates(records: List[QuestionRecord], template: str = "personal") 
         "mastery": _mastery(records),
         "skill_candidates": _skill_candidates(records),
         "session_shape": _session_shape(records),
+        "genre_mix": _genre_mix(records),
         "tool_compare": _tool_compare(records),
         "samples": _stratified_samples(records, template),
     }

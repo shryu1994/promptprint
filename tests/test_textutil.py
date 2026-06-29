@@ -96,3 +96,39 @@ class TextUtilTest(unittest.TestCase):
         self.assertTrue(T.is_multistep("1. do a\n2. do b\n3. do c"))
         self.assertTrue(T.is_multistep("먼저 A 하고 그다음 B 해줘"))
         self.assertFalse(T.is_multistep("just one thing"))
+
+
+class ClassifyGenreTest(unittest.TestCase):
+    """질문 의도 장르 분류(heuristic v1) — 결정적·양언어."""
+
+    def test_debug(self):
+        self.assertEqual(T.classify_genre("이거 왜 안 돼? 에러 고쳐줘"), "debug")
+        self.assertEqual(T.classify_genre("fix the TypeError crash"), "debug")
+        self.assertEqual(T.classify_genre("this doesn't work anymore"), "debug")
+
+    def test_build(self):
+        self.assertEqual(T.classify_genre("how do I add a login button"), "build")
+        self.assertEqual(T.classify_genre("로그인 기능 구현해줘"), "build")
+
+    def test_understand(self):
+        self.assertEqual(T.classify_genre("what is a closure in JS"), "understand")
+        self.assertEqual(T.classify_genre("이 코드 동작 원리 설명해줘"), "understand")
+        self.assertEqual(T.classify_genre("how does the event loop work"), "understand")
+
+    def test_improve(self):
+        self.assertEqual(T.classify_genre("이 루프 최적화해줘"), "improve")
+        self.assertEqual(T.classify_genre("refactor this to be cleaner"), "improve")
+
+    def test_other_fallback(self):
+        self.assertEqual(T.classify_genre("ㅁㄴㅇㄹ"), "other")
+        self.assertEqual(T.classify_genre(""), "other")
+        self.assertEqual(T.classify_genre(None), "other")
+
+    def test_priority_debug_over_build(self):
+        # "구현했는데 에러" → 에러(debug)가 구현(build)보다 우선(첫 매치 = 더 구체적)
+        self.assertEqual(T.classify_genre("로그인 구현했는데 에러나"), "debug")
+
+    def test_deterministic_and_in_genres(self):
+        for txt in ["fix bug", "implement X", "what is Y", "optimize Z", "zzz"]:
+            self.assertIn(T.classify_genre(txt), T.GENRES)
+        self.assertEqual(T.classify_genre("fix bug"), T.classify_genre("fix bug"))
