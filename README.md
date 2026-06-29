@@ -29,6 +29,8 @@ It's open source and offline by design, so "your data never leaves your computer
 | **Mastery** | Topics you once asked about intensely, then *graduated* from |
 | **Your phases** | Clusters the tool finds in your data — your own seasons of work |
 
+It also surfaces two things you can **share without oversharing**: your **session shape** (round-trips per task, one-shot rate — the numbers you can actually move) and a **question-genre mix** (debug / build / understand / improve) — the texture of *what* you ask, in counts, never raw text.
+
 Two speeds, same local data: the check for a quick nudge between sessions, the full report when you want the whole arc.
 
 ## Install
@@ -70,6 +72,7 @@ Your questions are personal, so privacy is built into the design — not bolted 
   ```
   One command scans the analysis code for any network-capable import and exits `0` only if it finds none. The proof is in the code, not a promise.
 - **Local output.** `aggregates.json`, `insights.json`, and the report contain your real questions. They are git-ignored by default — don't commit them, and review a card before you share it.
+- **Safe-to-share receipt.** When you build a report for your team or socially (`--template corporate`/`social`), it carries a receipt of what was scrubbed — raw questions removed, project names anonymized, zero network — so "safe to share" is shown, not assumed.
 - No telemetry, no accounts, no sign-up.
 
 ## Supported tools
