@@ -277,6 +277,64 @@ def _skill_candidates(records: List[QuestionRecord]) -> dict:
     return {"candidates": rows[:SKILL_TOP_N]}
 
 
+SESSION_SIZE_BUCKETS = [(1, 2), (2, 4), (4, 8), (8, 10 ** 9)]
+SESSION_SIZE_LABELS = ["1", "2-3", "4-7", "8+"]
+
+
+def _session_size_label(n: int) -> str:
+    for (lo, hi), label in zip(SESSION_SIZE_BUCKETS, SESSION_SIZE_LABELS):
+        if lo <= n < hi:
+            return label
+    return "8+"
+
+
+def _session_shape(records: List[QuestionRecord]) -> dict:
+    """세션당 왕복수(질문 수) + 원샷 비율 — '바꿀 수 있는' 행동 지표.
+
+    한 세션 = 하나의 session_id. 세션당 질문이 적고 원샷(1질문)이 많을수록 '한 번에 묻는'
+    경향이지만, 복잡한 작업은 본래 왕복이 많다 — 해석은 추세(delta)로, 여기선 실측 수치만
+    (해석은 insights LLM 몫). 세션의 월 = 첫 질문(가장 이른 ts)의 월. 결정적·무네트워크."""
+    by_session = defaultdict(list)
+    for r in records:
+        by_session[r.session_id].append(r)
+
+    n_sessions = len(by_session)
+    total_q = sum(len(v) for v in by_session.values())
+    one_shot = sum(1 for v in by_session.values() if len(v) == 1)
+
+    size_buckets = Counter()
+    month_sessions = defaultdict(int)
+    month_q = defaultdict(int)
+    month_oneshot = defaultdict(int)
+    for recs in by_session.values():
+        size = len(recs)
+        size_buckets[_session_size_label(size)] += 1
+        first_ts = min((r.ts for r in recs if r.ts), default="")
+        m = _month(first_ts) if first_ts else "unknown"
+        month_sessions[m] += 1
+        month_q[m] += size
+        if size == 1:
+            month_oneshot[m] += 1
+
+    by_month = {
+        m: {
+            "sessions": month_sessions[m],
+            "questions_per_session": round(month_q[m] / month_sessions[m], 2),
+            "one_shot_rate": round(month_oneshot[m] / month_sessions[m], 3),
+        }
+        for m in sorted(month_sessions)
+    }
+
+    return {
+        "sessions": n_sessions,
+        "questions_per_session": round(total_q / n_sessions, 2) if n_sessions else 0.0,
+        "one_shot_sessions": one_shot,
+        "one_shot_rate": round(one_shot / n_sessions, 3) if n_sessions else 0.0,
+        "size_buckets": dict(size_buckets),
+        "by_month": by_month,
+    }
+
+
 def _tool_compare(records: List[QuestionRecord]) -> dict:
     out = {}
     by_tool = defaultdict(list)
@@ -325,6 +383,7 @@ def build_aggregates(records: List[QuestionRecord], template: str = "personal") 
         "metaskill": _metaskill(records),
         "mastery": _mastery(records),
         "skill_candidates": _skill_candidates(records),
+        "session_shape": _session_shape(records),
         "tool_compare": _tool_compare(records),
         "samples": _stratified_samples(records, template),
     }

@@ -157,6 +157,8 @@ def main(argv=None):
         print(f"델타 저장 → {args.out}  (기준일 {d['as_of']}, 윈도우 {d['window_days']}일)", file=sys.stderr)
         print(f"  최근 {r['total']}개 vs 직전 {pr['total']}개 질문 · 세션당 {r['q_per_session']} vs {pr['q_per_session']}",
               file=sys.stderr)
+        print(f"  원샷(한 번에 끝낸 세션) {round(r['one_shot_rate'] * 100)}% vs {round(pr['one_shot_rate'] * 100)}%",
+              file=sys.stderr)
         print(f"  스킬화 후보(반복 노역) {len(d['skill_candidates'])}건", file=sys.stderr)
         return 0
 

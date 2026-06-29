@@ -50,6 +50,9 @@ LABELS = {
         "avg_prefix":     "평균 ",
         "chars_unit":     "자",
         "months_unit":    "개월",
+        "sess_qps":       "세션당 평균 질문",
+        "sess_oneshot":   "원샷(한 번에 끝난 세션)",
+        "sess_count":     "세션",
     },
     "en": {
         "nav_chart":      "Chart",
@@ -88,6 +91,9 @@ LABELS = {
         "avg_prefix":     "avg ",
         "chars_unit":     " chars",
         "months_unit":    " months",
+        "sess_qps":       "avg questions / session",
+        "sess_oneshot":   "one-shot (single-question sessions)",
+        "sess_count":     "sessions",
     },
 }
 
@@ -177,6 +183,27 @@ def _surge_chart_html(by_month: Dict[str, int], avg_len: Dict[str, float], L=Non
         '<div class="surge-chart-wrap">' +
         "".join(bars_html) +
         '</div><div class="surge-baseline"></div>'
+    )
+
+
+def _session_shape_html(ss: dict, L=None) -> str:
+    """세션 모양 한 줄: 세션당 평균 질문 · 원샷 비율 · 세션 수.
+
+    '왕복수'는 (vanity 가 아니라) 바꿀 수 있는 행동 지표 — 차트 캡션 아래 작게 붙인다.
+    수치만 노출(원문 0)이라 corporate/social 안전. 세션이 0이면 아무것도 안 그린다."""
+    if not ss or not ss.get("sessions"):
+        return ""
+    qps = ss.get("questions_per_session", 0)
+    one_shot_pct = round(ss.get("one_shot_rate", 0) * 100)
+    n = ss.get("sessions", 0)
+    txt = (
+        f'{_lbl(L or LABELS["ko"], "sess_qps")} {_esc(qps)} · '
+        f'{_lbl(L or LABELS["ko"], "sess_oneshot")} {one_shot_pct}% · '
+        f'{_lbl(L or LABELS["ko"], "sess_count")} {_fmt_int(n)}'
+    )
+    return (
+        '<p class="surge-annotation" style="margin-top:6px;opacity:.78;">'
+        f'{txt}</p>'
     )
 
 
@@ -688,6 +715,9 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
         L,
     )
 
+    # ── session shape (세션당 왕복수·원샷률 — 바꿀 수 있는 행동 지표) ─────────────
+    sess_shape_html = _session_shape_html(aggregates.get("session_shape", {}), L)
+
     # ── dimensions ────────────────────────────────────────────────────────────
     dims = insights.get("dimensions", {})
     dim_blocks = []
@@ -764,6 +794,7 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
             f'{_lbl(L,"section_chart")}</h2>\n'
             f'  {surge_html}\n'
             f'  <p class="surge-annotation">{_lbl(L,"chart_caption")}</p>\n'
+            f'  {sess_shape_html}\n'
             '</div>\n'
             '</section>\n'
         ),

@@ -44,6 +44,21 @@ def test_q_per_session():
     assert d["recent"]["q_per_session"] == 1.5   # 3 questions / 2 sessions
 
 
+def test_one_shot_rate_and_delta():
+    recs = [
+        # recent: s1=2질문, s2=1질문(원샷) → 1/2 = 0.5
+        rec("2026-06-20T10:00:00+00:00", "a", session="s1"),
+        rec("2026-06-20T11:00:00+00:00", "b", session="s1"),
+        rec("2026-06-21T10:00:00+00:00", "c", session="s2"),
+        # prior: s3=1질문(원샷) → 1/1 = 1.0
+        rec("2026-05-10T10:00:00+00:00", "d", session="s3"),
+    ]
+    d = build_delta(recs, window_days=30)
+    assert d["recent"]["one_shot_rate"] == 0.5
+    assert d["prior"]["one_shot_rate"] == 1.0
+    assert d["deltas"]["one_shot_rate"] == -0.5
+
+
 def test_new_and_dropped_topics():
     recs = [
         rec("2026-06-20T10:00:00+00:00", "kubernetes deployment question"),  # recent only

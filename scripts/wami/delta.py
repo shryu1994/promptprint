@@ -26,7 +26,9 @@ def _rate(n: int, total: int) -> float:
 def _window_metrics(records: List[QuestionRecord]) -> dict:
     """한 윈도우의 행동 지표(길이에 강건). 비율 = 신호가 1회+ 등장한 질문 수 / 전체."""
     total = len(records)
-    sessions = len({r.session_id for r in records})
+    sess_sizes = Counter(r.session_id for r in records)
+    sessions = len(sess_sizes)
+    one_shot = sum(1 for c in sess_sizes.values() if c == 1)
     sig_msgs = Counter()
     code = multistep = len_sum = 0
     for r in records:
@@ -43,6 +45,7 @@ def _window_metrics(records: List[QuestionRecord]) -> dict:
         "total": total,
         "sessions": sessions,
         "q_per_session": round(total / sessions, 2) if sessions else 0.0,
+        "one_shot_rate": round(one_shot / sessions, 3) if sessions else 0.0,
         "avg_len": round(len_sum / total, 1) if total else 0.0,
         "code_block_rate": _rate(code, total),
         "multistep_rate": _rate(multistep, total),
@@ -86,6 +89,7 @@ def build_delta(records: List[QuestionRecord], window_days: int = 30,
     deltas = {
         "total": rm["total"] - pm["total"],
         "q_per_session": round(rm["q_per_session"] - pm["q_per_session"], 2),
+        "one_shot_rate": round(rm["one_shot_rate"] - pm["one_shot_rate"], 3),
         "avg_len": round(rm["avg_len"] - pm["avg_len"], 1),
         "code_block_rate": round(rm["code_block_rate"] - pm["code_block_rate"], 3),
         "multistep_rate": round(rm["multistep_rate"] - pm["multistep_rate"], 3),

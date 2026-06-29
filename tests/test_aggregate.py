@@ -124,10 +124,73 @@ class AggregateTopicSpecificityTest(unittest.TestCase):
 class AggregateEmptyTest(unittest.TestCase):
     def test_empty_records(self):
         agg = build_aggregates([])
-        for section in ("meta", "activity", "shape", "topics", "metaskill", "mastery", "tool_compare", "samples"):
+        for section in ("meta", "activity", "shape", "topics", "metaskill", "mastery",
+                        "session_shape", "tool_compare", "samples"):
             self.assertIn(section, agg)
         self.assertEqual(agg["meta"]["total_questions"], 0)
         self.assertEqual(agg["meta"]["date_range"], [None, None])
+
+
+class AggregateSessionShapeTest(unittest.TestCase):
+    """세션모양 — 세션당 왕복수(질문 수) + 원샷 비율. '바꿀 수 있는' 행동 지표."""
+
+    SHAPE_KEYS = {"sessions", "questions_per_session", "one_shot_sessions",
+                  "one_shot_rate", "size_buckets", "by_month"}
+
+    def _recs(self):
+        # s1: 3질문(2026-01), s2: 1질문 원샷(2026-01), s3: 1질문 원샷(2026-02)
+        return [
+            mk("2026-01-05T10:00:00+00:00", "claude", "q a", sid="s1", turn=0),
+            mk("2026-01-05T10:01:00+00:00", "claude", "q b", sid="s1", turn=1),
+            mk("2026-01-05T10:02:00+00:00", "claude", "q c", sid="s1", turn=2),
+            mk("2026-01-20T09:00:00+00:00", "codex",  "q d", sid="s2", turn=0),
+            mk("2026-02-10T09:00:00+00:00", "codex",  "q e", sid="s3", turn=0),
+        ]
+
+    def setUp(self):
+        self.ss = build_aggregates(self._recs())["session_shape"]
+
+    def test_shape_keys(self):
+        self.assertEqual(set(self.ss.keys()), self.SHAPE_KEYS)
+
+    def test_counts_and_rates(self):
+        # 3 세션, 5 질문 → 5/3 = 1.67; 원샷 2개(s2,s3) → 2/3 = 0.667
+        self.assertEqual(self.ss["sessions"], 3)
+        self.assertEqual(self.ss["questions_per_session"], 1.67)
+        self.assertEqual(self.ss["one_shot_sessions"], 2)
+        self.assertEqual(self.ss["one_shot_rate"], 0.667)
+
+    def test_size_buckets(self):
+        # s1=3질문→"2-3", s2·s3=1질문→"1"
+        self.assertEqual(self.ss["size_buckets"], {"1": 2, "2-3": 1})
+
+    def test_by_month_uses_first_question_month(self):
+        # 2026-01: s1(3q)+s2(1q)=2세션/4질문, 원샷1 → q_per_session 2.0, one_shot_rate 0.5
+        # 2026-02: s3(1q)=1세션/1질문, 원샷1 → q_per_session 1.0, one_shot_rate 1.0
+        self.assertEqual(self.ss["by_month"]["2026-01"],
+                         {"sessions": 2, "questions_per_session": 2.0, "one_shot_rate": 0.5})
+        self.assertEqual(self.ss["by_month"]["2026-02"],
+                         {"sessions": 1, "questions_per_session": 1.0, "one_shot_rate": 1.0})
+
+    def test_deterministic(self):
+        ss2 = build_aggregates(self._recs())["session_shape"]
+        self.assertEqual(self.ss, ss2)
+
+    def test_empty_records(self):
+        ss = build_aggregates([])["session_shape"]
+        self.assertEqual(ss["sessions"], 0)
+        self.assertEqual(ss["questions_per_session"], 0.0)
+        self.assertEqual(ss["one_shot_sessions"], 0)
+        self.assertEqual(ss["one_shot_rate"], 0.0)
+        self.assertEqual(ss["size_buckets"], {})
+        self.assertEqual(ss["by_month"], {})
+
+    def test_big_session_bucket(self):
+        recs = [mk(f"2026-03-01T{i:02d}:00:00+00:00", "claude", "x", sid="big", turn=i)
+                for i in range(9)]
+        ss = build_aggregates(recs)["session_shape"]
+        self.assertEqual(ss["size_buckets"], {"8+": 1})
+        self.assertEqual(ss["one_shot_rate"], 0.0)
 
 
 class AggregateConfidenceTierTest(unittest.TestCase):

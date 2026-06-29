@@ -67,6 +67,31 @@ class RenderTest(unittest.TestCase):
             self.assertIn(_e(c["headline"]), self.html)
             self.assertIn(_e(c["caption"]), self.html)
 
+    def test_session_shape_line_in_chart(self):
+        """session_shape가 있으면 chart 섹션에 세션당 질문·원샷률 한 줄이 나와야 한다."""
+        agg = json.loads(json.dumps(self.aggregates))
+        agg["session_shape"] = {
+            "sessions": 12, "questions_per_session": 3.5,
+            "one_shot_sessions": 4, "one_shot_rate": 0.333,
+            "size_buckets": {"1": 4, "2-3": 5, "4-7": 3}, "by_month": {},
+        }
+        out = build_report_html(self.insights, agg)
+        chart_start = out.find('id="chart"')
+        self.assertNotEqual(chart_start, -1)
+        chart_region = out[chart_start:out.find("</section>", chart_start)]
+        self.assertIn("세션당 평균 질문", chart_region)
+        self.assertIn("3.5", chart_region)
+        self.assertIn("33%", chart_region)   # 0.333 → 33%
+
+    def test_session_shape_omitted_when_no_sessions(self):
+        """session_shape가 없거나 세션 0이면 줄을 그리지 않는다(빈 안전)."""
+        agg = json.loads(json.dumps(self.aggregates))
+        agg["session_shape"] = {"sessions": 0, "questions_per_session": 0.0,
+                                "one_shot_sessions": 0, "one_shot_rate": 0.0,
+                                "size_buckets": {}, "by_month": {}}
+        out = build_report_html(self.insights, agg)
+        self.assertNotIn("세션당 평균 질문", out)
+
     def test_has_next_bearings(self):
         # 다음 항로 label appears in the HTML (Korean default)
         self.assertIn("다음 항로", self.html)

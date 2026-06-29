@@ -59,7 +59,7 @@ description: >-
    윈도우는 `--window 14`처럼 조절. 기준일은 마지막 로그 날짜 자동(`--as-of`로 고정 가능).
 
 2. `$PWD/delta.json`을 읽고, **변한 것 + 처방을 앞세워** 짧게 서술합니다(회고 아님, *코치* 톤):
-   - **무엇이 움직였나(길이에 강건):** `deltas.metaskill_rate`(verify·critique·delegate·counter, per-message 비율 변화 pp)와 `deltas.code_block_rate`·`deltas.q_per_session`. **"verify가 +18%p"처럼 *비율*로 말하고, 질문 수 폭증(`deltas.total`)으로 성장을 단정하지 마라 — 비율이 진짜 신호다.**
+   - **무엇이 움직였나(길이에 강건):** `deltas.metaskill_rate`(verify·critique·delegate·counter, per-message 비율 변화 pp)와 `deltas.code_block_rate`·`deltas.q_per_session`·`deltas.one_shot_rate`(원샷=한 번에 끝낸 세션 비율, 세션당 왕복수와 짝). **"verify가 +18%p"처럼 *비율*로 말하고, 질문 수 폭증(`deltas.total`)으로 성장을 단정하지 마라 — 비율이 진짜 신호다.** ⚠️ 왕복수↓·원샷률↑이 늘 "좋아짐"은 아니다(복잡한 작업은 본래 왕복이 많다) — 추세로만 말하고 단정 금지.
    - **다음에 뭘 할까(처방, 헤드라인):** `skill_candidates`(최근 반복·재설명 노역)에서 1~2개 → "X를 N번 재설명 중 → `/skill-creator`로 스킬화"처럼 *데이터 정박·실행가능*하게. 처방을 앞에, 회고는 곁가지.
    - **새/사라진 관심:** `new_topics`·`dropped_topics` 한 줄.
    - ⚠️ `recent.total`·`prior.total`이 크게 불균형이면(휴지기/폭증) 비율만 신뢰하고 절대수 비교는 신중히. 데이터 적으면 과장 금지(신뢰성이 이 도구의 핵심).
