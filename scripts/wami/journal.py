@@ -32,3 +32,24 @@ def upsert_journal(path: str, entry: dict) -> None:
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(journal, fh, ensure_ascii=False, indent=2)
+
+
+def journal_entry(delta: dict) -> dict:
+    """build_delta 결과에서 *프라이버시 안전*한 항목만 뽑는다(원문 0, 비율·라벨만)."""
+    rec = delta["recent"]
+    return {
+        "as_of": delta["as_of"],
+        "window_days": delta["window_days"],
+        "metrics": {
+            "metaskill_rate": dict(rec["metaskill_rate"]),
+            "one_shot_rate": rec["one_shot_rate"],
+            "code_block_rate": rec["code_block_rate"],
+            "q_per_session": rec["q_per_session"],
+            "multistep_rate": rec["multistep_rate"],
+            "avg_len": rec["avg_len"],
+        },
+        "skill_candidates": [
+            {"term": c["term"], "recent_count": c["recent_count"], "avg_len": c["avg_len"]}
+            for c in delta.get("skill_candidates", [])
+        ],
+    }

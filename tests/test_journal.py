@@ -1,5 +1,22 @@
 import json
-from wami.journal import read_journal, previous_entry, upsert_journal
+from wami.model import QuestionRecord
+from wami.delta import build_delta
+from wami.journal import read_journal, previous_entry, upsert_journal, journal_entry
+
+
+def _rec(ts, text, session="s1"):
+    return QuestionRecord(ts=ts, tool="claude", session_id=session,
+                          project="p", text=text, turn_idx=0)
+
+
+def test_journal_entry_is_privacy_safe_and_shaped():
+    recs = [_rec("2026-06-20T10:00:00+00:00", "please verify this exact phrase")]
+    entry = journal_entry(build_delta(recs, window_days=30))
+    blob = json.dumps(entry, ensure_ascii=False)
+    assert "verify this exact phrase" not in blob          # 원문 0
+    assert set(entry) == {"as_of", "window_days", "metrics", "skill_candidates"}
+    assert "metaskill_rate" in entry["metrics"]
+    assert "verify" in entry["metrics"]["metaskill_rate"]
 
 
 def test_read_journal_missing_returns_empty(tmp_path):
