@@ -41,7 +41,7 @@ def journal_entry(delta: dict) -> dict:
         "as_of": delta["as_of"],
         "window_days": delta["window_days"],
         "metrics": {
-            "metaskill_rate": dict(rec["metaskill_rate"]),
+            "metaskill_rate": dict(rec["metaskill_rate"]),  # {signal_key: float} — 신호 라벨→비율, 원문 없음
             "one_shot_rate": rec["one_shot_rate"],
             "code_block_rate": rec["code_block_rate"],
             "q_per_session": rec["q_per_session"],

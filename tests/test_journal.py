@@ -19,6 +19,13 @@ def test_journal_entry_is_privacy_safe_and_shaped():
     assert "verify" in entry["metrics"]["metaskill_rate"]
 
 
+def test_journal_entry_tolerates_empty_delta():
+    entry = journal_entry(build_delta([], window_days=30))
+    assert entry["as_of"] is None
+    assert entry["skill_candidates"] == []
+    assert "metaskill_rate" in entry["metrics"]
+
+
 def test_read_journal_missing_returns_empty(tmp_path):
     assert read_journal(str(tmp_path / "nope.json")) == []
 
