@@ -7,6 +7,8 @@ import json
 import os
 from typing import List, Optional
 
+from wami.aggregate import SIGNAL_KEYS
+
 
 def read_journal(path: str) -> List[dict]:
     """저널을 읽어 항목 리스트 반환. 없거나 깨졌으면 [](graceful, delta 빈처리와 동일 정신)."""
@@ -53,3 +55,32 @@ def journal_entry(delta: dict) -> dict:
             for c in delta.get("skill_candidates", [])
         ],
     }
+
+
+_SCALAR_METRICS = ("one_shot_rate", "code_block_rate", "q_per_session",
+                   "multistep_rate", "avg_len")
+
+
+def followup(prev: dict, delta: dict) -> dict:
+    """직전 항목(prev) 대비 이번 delta의 움직임 + 노역 후속점검(전부 결정적)."""
+    rec = delta["recent"]
+    pm = prev.get("metrics", {})
+    metric_moves = {
+        k: {"prev": pm[k], "now": rec[k], "change": round(rec[k] - pm[k], 3)}
+        for k in _SCALAR_METRICS if k in pm
+    }
+    prev_meta = pm.get("metaskill_rate", {})
+    metaskill_moves = {
+        k: {"prev": prev_meta[k], "now": rec["metaskill_rate"][k],
+            "change": round(rec["metaskill_rate"][k] - prev_meta[k], 3)}
+        for k in SIGNAL_KEYS if k in prev_meta
+    }
+    now_rc = {c["term"]: c["recent_count"] for c in delta.get("skill_candidates", [])}
+    toil_followup = [
+        {"term": c["term"], "prev_recent_count": c["recent_count"],
+         "now_recent_count": now_rc.get(c["term"], 0),
+         "change": now_rc.get(c["term"], 0) - c["recent_count"]}
+        for c in prev.get("skill_candidates", [])
+    ]
+    return {"since": prev["as_of"], "metric_moves": metric_moves,
+            "metaskill_moves": metaskill_moves, "toil_followup": toil_followup}
