@@ -62,7 +62,9 @@ _SCALAR_METRICS = ("one_shot_rate", "code_block_rate", "q_per_session",
 
 
 def followup(prev: dict, delta: dict) -> dict:
-    """직전 항목(prev) 대비 이번 delta의 움직임 + 노역 후속점검(전부 결정적)."""
+    """직전 항목(prev) 대비 이번 delta의 움직임 + 노역 후속점검(전부 결정적).
+
+    prev에 없는 키는 출력에서 생략된다(metric_moves·metaskill_moves 모두 prev 기준)."""
     rec = delta["recent"]
     pm = prev.get("metrics", {})
     metric_moves = {
@@ -71,8 +73,8 @@ def followup(prev: dict, delta: dict) -> dict:
     }
     prev_meta = pm.get("metaskill_rate", {})
     metaskill_moves = {
-        k: {"prev": prev_meta[k], "now": rec["metaskill_rate"][k],
-            "change": round(rec["metaskill_rate"][k] - prev_meta[k], 3)}
+        k: {"prev": prev_meta[k], "now": rec["metaskill_rate"].get(k, 0.0),
+            "change": round(rec["metaskill_rate"].get(k, 0.0) - prev_meta[k], 3)}
         for k in SIGNAL_KEYS if k in prev_meta
     }
     now_rc = {c["term"]: c["recent_count"] for c in delta.get("skill_candidates", [])}

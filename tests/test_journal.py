@@ -95,4 +95,5 @@ def test_two_checks_compounding_end_to_end(tmp_path):
     prev = previous_entry(read_journal(jpath), d2["as_of"])        # check #2 reads #1
     assert prev["as_of"] == d1["as_of"]
     fu = followup(prev, d2)
+    assert fu["metaskill_moves"]["verify"]["prev"] == 0.0
     assert fu["metaskill_moves"]["verify"]["now"] > fu["metaskill_moves"]["verify"]["prev"]
