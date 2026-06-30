@@ -4,7 +4,7 @@
 (per-message rate · q_per_session)와 처방(skill_candidates: 최근 반복 노역)을 앞세운다 —
 사용자 피드백의 #1 처방(1회용 novelty → 재사용 피드백 도구로 전환). 전부 stdlib·무네트워크."""
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from wami.model import QuestionRecord
@@ -14,9 +14,12 @@ from wami import aggregate as agg
 
 def _parse(ts: str) -> Optional[datetime]:
     try:
-        return datetime.fromisoformat(ts)
+        dt = datetime.fromisoformat(ts)
     except (ValueError, TypeError):
         return None
+    if dt.tzinfo is None:                 # naive(as_of 날짜문자열 등) → UTC로 간주, 레코드와 정합
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 def _rate(n: int, total: int) -> float:
