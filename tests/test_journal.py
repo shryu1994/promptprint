@@ -80,7 +80,21 @@ def test_followup_toil_drop():
              "skill_candidates": [{"term": "deploy", "recent_count": 1, "avg_len": 130.0}]}
     fu = followup(prev, delta)
     assert fu["toil_followup"][0] == {"term": "deploy", "prev_recent_count": 4,
-                                      "now_recent_count": 1, "change": -3}
+                                      "now_recent_count": 1, "change": -3,
+                                      "still_tracked": True}
+
+
+def test_followup_toil_term_no_longer_top_is_not_zeroed():
+    prev = {"as_of": "2026-05-01", "metrics": {"metaskill_rate": {}},
+            "skill_candidates": [{"term": "deploy", "recent_count": 1337, "avg_len": 80.0}]}
+    delta = {"as_of": "2026-06-01",
+             "recent": {"metaskill_rate": {}, "one_shot_rate": 0, "code_block_rate": 0,
+                        "q_per_session": 0, "multistep_rate": 0, "avg_len": 0},
+             "skill_candidates": [{"term": "kubernetes", "recent_count": 50, "avg_len": 90.0}]}
+    item = followup(prev, delta)["toil_followup"][0]
+    assert item["still_tracked"] is False
+    assert item["now_recent_count"] is None      # NOT 0 — we don't claim elimination
+    assert item["change"] is None
 
 
 def test_two_checks_compounding_end_to_end(tmp_path):

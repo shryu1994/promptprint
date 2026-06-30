@@ -64,7 +64,11 @@ _SCALAR_METRICS = ("one_shot_rate", "code_block_rate", "q_per_session",
 def followup(prev: dict, delta: dict) -> dict:
     """직전 항목(prev) 대비 이번 delta의 움직임 + 노역 후속점검(전부 결정적).
 
-    prev에 없는 키는 출력에서 생략된다(metric_moves·metaskill_moves 모두 prev 기준)."""
+    prev에 없는 키는 출력에서 생략된다(metric_moves·metaskill_moves 모두 prev 기준).
+
+    toil_followup 해석 주의: top-N 밖으로 빠진 term은 `still_tracked:false`·
+    `now_recent_count:null`(0이 아님 — 현재 카운트 미측정). '노역 줄음'은
+    `still_tracked:true`이고 `change<0`일 때만 확인 가능하다."""
     rec = delta["recent"]
     pm = prev.get("metrics", {})
     metric_moves = {
@@ -78,11 +82,21 @@ def followup(prev: dict, delta: dict) -> dict:
         for k in SIGNAL_KEYS if k in prev_meta
     }
     now_rc = {c["term"]: c["recent_count"] for c in delta.get("skill_candidates", [])}
-    toil_followup = [
-        {"term": c["term"], "prev_recent_count": c["recent_count"],
-         "now_recent_count": now_rc.get(c["term"], 0),
-         "change": now_rc.get(c["term"], 0) - c["recent_count"]}
-        for c in prev.get("skill_candidates", [])
-    ]
+    toil_followup = []
+    for c in prev.get("skill_candidates", []):
+        term = c["term"]
+        if term in now_rc:                       # 둘 다 상위 후보 → 진짜 변화량
+            toil_followup.append({
+                "term": term, "prev_recent_count": c["recent_count"],
+                "now_recent_count": now_rc[term],
+                "change": now_rc[term] - c["recent_count"],
+                "still_tracked": True,
+            })
+        else:                                    # 이번 top-N 밖 → 현재 카운트 모름(0 아님!)
+            toil_followup.append({
+                "term": term, "prev_recent_count": c["recent_count"],
+                "now_recent_count": None, "change": None,
+                "still_tracked": False,
+            })
     return {"since": prev["as_of"], "metric_moves": metric_moves,
             "metaskill_moves": metaskill_moves, "toil_followup": toil_followup}
