@@ -50,15 +50,16 @@ description: >-
 
 ## 수시 점검 (delta) — 재실행용 짧은 모드
 
-"요즘 어떻게 달라졌어?" · "promptprint check" 류의 *재실행* 요청이면, 연 1회 회고(위 6차원 전체) 대신 **최근 N일 vs 그 전 N일** 변화만 빠르게 보여줍니다(가벼운 대화형, 큰 HTML 리포트 없이). 회고가 1회용으로 끝나지 않게 하는 *수시·처방* 모드입니다.
+"요즘 어떻게 달라졌어?" · "promptprint check" 류의 *재실행* 요청이면, 연 1회 회고(위 6차원 전체) 대신 **최근 N일 vs 그 전 N일** 변화만 빠르게 보여줍니다(가벼운 대화형, 큰 HTML 리포트 없이). 회고가 1회용으로 끝나지 않게 하는 *수시·처방* 모드입니다. 풀 6차원 Wrapped 리포트·공유카드는 *첫인상(온보딩)* 자산이다 — **재방문 점검에선 재생성하지 말고**, 위 followup 중심의 가벼운 대화형으로 끝내라(큰 HTML 없이).
 
 1. 델타 계산(결정적, LLM 아님):
    ```bash
-   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}/scripts" python3 -m wami.cli delta --window 30 --out "$PWD/delta.json"
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}/scripts" python3 -m wami.cli delta --window 30 --journal "$PWD/.promptprint-checks.local.json" --out "$PWD/delta.json"
    ```
    윈도우는 `--window 14`처럼 조절. 기준일은 마지막 로그 날짜 자동(`--as-of`로 고정 가능).
 
 2. `$PWD/delta.json`을 읽고, **변한 것 + 처방을 앞세워** 짧게 서술합니다(회고 아님, *코치* 톤):
+   - **0) 지난 점검 이후(있으면 *맨 먼저*):** `prescription_followup`이 있으면 그걸 첫 줄에 — "지난 점검(`since`) 이후: verify 8%→17%(+9pp 먹힘) / 'deploy' 반복 4→1(노역 줄음)". `metaskill_moves`·`metric_moves`·`toil_followup`을 *네가 지난번 짚은 것의 결과*로 읽어라(코치의 후속점검). **안 움직였으면 "아직 안 움직였다"고 정직히**, 방향 모호한 지표(one_shot_rate 등)는 좋다/나쁘다 단정 금지. ⚠️ `toil_followup`에서 `still_tracked:false`(= `now_recent_count:null`)인 항목은 *그 반복이 사라졌다는 뜻이 아니라* 이번 top-N 후보 밖이라는 뜻일 뿐 — **절대 "→0/완전 제거"로 자랑하지 말고** "더 이상 상위 반복 후보 아님(현재 카운트 미측정)"으로만 서술하라. '노역 줄음'은 `still_tracked:true`이고 `change<0`일 때만. `prescription_followup`이 없으면(첫 점검) 이 블록은 건너뛴다.
    - **무엇이 움직였나(길이에 강건):** `deltas.metaskill_rate`(verify·critique·delegate·counter, per-message 비율 변화 pp)와 `deltas.code_block_rate`·`deltas.q_per_session`·`deltas.one_shot_rate`(원샷=한 번에 끝낸 세션 비율, 세션당 왕복수와 짝). **"verify가 +18%p"처럼 *비율*로 말하고, 질문 수 폭증(`deltas.total`)으로 성장을 단정하지 마라 — 비율이 진짜 신호다.** ⚠️ 왕복수↓·원샷률↑이 늘 "좋아짐"은 아니다(복잡한 작업은 본래 왕복이 많다) — 추세로만 말하고 단정 금지.
    - **다음에 뭘 할까(처방, 헤드라인):** `skill_candidates`(최근 반복·재설명 노역)에서 1~2개 → "X를 N번 재설명 중 → `/skill-creator`로 스킬화"처럼 *데이터 정박·실행가능*하게. 처방을 앞에, 회고는 곁가지.
    - **새/사라진 관심:** `new_topics`·`dropped_topics` 한 줄.

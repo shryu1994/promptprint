@@ -89,3 +89,14 @@ def test_empty_no_crash():
     assert d["recent"]["total"] == 0
     assert d["deltas"] == {}
     assert d["skill_candidates"] == []
+
+
+def test_as_of_naive_date_string_with_aware_records():
+    recs = [
+        rec("2026-06-20T10:00:00+00:00", "recent one"),
+        rec("2026-05-10T10:00:00+00:00", "prior one"),
+    ]
+    d = build_delta(recs, window_days=30, as_of="2026-06-21")  # naive date string
+    assert d["as_of"] == "2026-06-21"
+    assert d["recent"]["total"] == 1   # only 06-20 in (05-22, 06-21]
+    assert d["prior"]["total"] == 1

@@ -10,6 +10,7 @@ from wami.aggregate import build_aggregates
 from wami.insights import validate_insights
 from wami.render import build_report_html
 from wami.delta import build_delta
+from wami.journal import read_journal, previous_entry, upsert_journal, journal_entry, followup
 
 
 def run_aggregate(roots_by_tool: Optional[Dict[str, List[str]]], out_path: str,
@@ -79,6 +80,10 @@ def main(argv=None):
                     help="포함할 도구 선택(생략 시 전체)")
     pd.add_argument("--tool-roots", action="append", default=None, metavar="TOOL:PATH",
                     help="도구별 로그 경로 지정(반복 가능)")
+    pd.add_argument("--journal", default=".promptprint-checks.local.json",
+                    help="체크 저널 경로(복리 점검·gitignored). 끄려면 --no-journal")
+    pd.add_argument("--no-journal", action="store_true",
+                    help="저널 읽기·쓰기 건너뛰기(1회성 델타만)")
 
     pv = sub.add_parser("validate-insights", help="insights.json 구조 검증")
     pv.add_argument("path", help="검증할 insights.json 경로")
@@ -146,6 +151,15 @@ def main(argv=None):
         print("로그를 스캔하는 중…", file=sys.stderr)
         records = extract_records(roots)
         d = build_delta(records, window_days=args.window, as_of=args.as_of)
+        if not args.no_journal and not d.get("empty"):
+            try:
+                journal = read_journal(args.journal)
+                prev = previous_entry(journal, d["as_of"])
+                if prev:
+                    d["prescription_followup"] = followup(prev, d)
+                upsert_journal(args.journal, journal_entry(d))
+            except OSError as exc:
+                print(f"저널 기록 실패(무시하고 계속): {exc}", file=sys.stderr)
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as fh:
             json.dump(d, fh, ensure_ascii=False, indent=2, sort_keys=True)
@@ -160,6 +174,9 @@ def main(argv=None):
         print(f"  원샷(한 번에 끝낸 세션) {round(r['one_shot_rate'] * 100)}% vs {round(pr['one_shot_rate'] * 100)}%",
               file=sys.stderr)
         print(f"  스킬화 후보(반복 노역) {len(d['skill_candidates'])}건", file=sys.stderr)
+        if d.get("prescription_followup"):
+            print(f"  지난 점검({d['prescription_followup']['since']}) 대비 움직임·노역 후속 포함 ✓",
+                  file=sys.stderr)
         return 0
 
     if args.cmd == "validate-insights":
