@@ -1,5 +1,4 @@
 import json
-import json as _json
 import os
 import sys
 import tempfile
@@ -146,12 +145,12 @@ def test_delta_writes_journal_and_followup(tmp_path, monkeypatch):
     rc = main(["delta", "--claude", str(logdir), "--as-of", "2026-05-21",
                "--journal", jpath, "--out", out1])
     assert rc == 0
-    assert _json.loads((tmp_path / "checks.local.json").read_text())  # 저널 생성됨
+    assert json.loads((tmp_path / "checks.local.json").read_text())  # 저널 생성됨
     out2 = str(tmp_path / "d2.json")
     rc = main(["delta", "--claude", str(logdir), "--as-of", "2026-06-21",
                "--journal", jpath, "--out", out2])
     assert rc == 0
-    d2 = _json.loads((tmp_path / "d2.json").read_text())
+    d2 = json.loads((tmp_path / "d2.json").read_text())
     assert "prescription_followup" in d2                 # 둘째 점검이 첫째를 기억
     assert d2["prescription_followup"]["since"] == "2026-05-21"
 
@@ -207,3 +206,22 @@ class CliAggregateEmptyTest(unittest.TestCase):
         self.assertIn("로그를 찾지 못했습니다", captured)
         self.assertIn("--claude", captured)
         self.assertIn("--codex", captured)
+
+
+def test_delta_survives_journal_write_failure(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    logdir = tmp_path / "logs"
+    logdir.mkdir()
+    (logdir / "a.jsonl").write_text(
+        '{"type":"user","timestamp":"2026-06-20T10:00:00Z",'
+        '"message":{"role":"user","content":"please verify this is correct"}}\n',
+        encoding="utf-8")
+    import wami.cli as cli
+    def boom(*a, **k):
+        raise OSError("disk full")
+    monkeypatch.setattr(cli, "upsert_journal", boom)
+    out = str(tmp_path / "d.json")
+    rc = cli.main(["delta", "--claude", str(logdir), "--as-of", "2026-06-21",
+                   "--journal", str(tmp_path / "checks.local.json"), "--out", out])
+    assert rc == 0                          # graceful, not a crash
+    assert (tmp_path / "d.json").exists()   # delta output still written

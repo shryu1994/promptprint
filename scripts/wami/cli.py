@@ -152,11 +152,14 @@ def main(argv=None):
         records = extract_records(roots)
         d = build_delta(records, window_days=args.window, as_of=args.as_of)
         if not args.no_journal and not d.get("empty"):
-            journal = read_journal(args.journal)
-            prev = previous_entry(journal, d["as_of"])
-            if prev:
-                d["prescription_followup"] = followup(prev, d)
-            upsert_journal(args.journal, journal_entry(d))
+            try:
+                journal = read_journal(args.journal)
+                prev = previous_entry(journal, d["as_of"])
+                if prev:
+                    d["prescription_followup"] = followup(prev, d)
+                upsert_journal(args.journal, journal_entry(d))
+            except OSError as exc:
+                print(f"저널 기록 실패(무시하고 계속): {exc}", file=sys.stderr)
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as fh:
             json.dump(d, fh, ensure_ascii=False, indent=2, sort_keys=True)
