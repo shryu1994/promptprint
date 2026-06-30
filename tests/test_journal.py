@@ -21,3 +21,8 @@ def test_previous_entry_strictly_earlier():
     j = [{"as_of": "2026-05-01"}, {"as_of": "2026-06-01"}]
     assert previous_entry(j, "2026-06-01")["as_of"] == "2026-05-01"   # same-day excluded
     assert previous_entry(j, "2026-04-01") is None
+
+
+def test_previous_entry_skips_entry_without_as_of():
+    j = [{"as_of": "2026-05-01"}, {"note": "no as_of"}, {"as_of": "2026-06-01"}]
+    assert previous_entry(j, "2026-06-01")["as_of"] == "2026-05-01"
