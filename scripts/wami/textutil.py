@@ -45,6 +45,22 @@ NOISE_PREFIXES = (
     # Codex가 user 메시지로 주입하는 IDE 컨텍스트·AGENTS (실데이터 발견: user 텍스트의 ~84%)
     "# Context from my IDE setup",
     "# AGENTS.md instructions",
+    # claude-mem 플러그인이 user 턴으로 주입하는 기억 에이전트 프롬프트·관찰 XML
+    # (실데이터: 자동화-heavy 환경에서 user 텍스트의 ~50% — 진짜 질문 아님).
+    "Hello memory agent",
+    "<observed_from_primary_session",
+    "--- MODE SWITCH:",
+    "You are a Claude-Mem",
+    "You are Claude-Mem",
+    "You are extracting a structured summary",
+    # Claude Code 자체 시스템/요약/스킬/훅 주입 (사람이 친 질문이 아님)
+    "This session is being continued from a previous",
+    "Caveat: The messages below were generated",
+    "Continue from where you left off.",
+    "[Your previous response had no visible output",
+    "Base directory for this skill:",
+    "Stop hook feedback:",
+    "A session-scoped Stop hook is now active",
 )
 
 

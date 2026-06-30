@@ -57,3 +57,42 @@ class ClaudeTurnIdxIncrementTest(unittest.TestCase):
             self.assertTrue(all(r.session_id == "sess-abc" for r in recs))
         finally:
             os.unlink(tmp_path)
+
+
+class ClaudeSubagentAndStatsTest(unittest.TestCase):
+    """구조적 기계-턴 제외(isSidechain·agentId) + 신뢰 영수증(scan stats)."""
+
+    def _write(self, objs):
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False)
+        f.write("\n".join(json.dumps(o) for o in objs) + "\n")
+        f.close()
+        return f.name
+
+    def test_subagent_turns_dropped_and_stats_counted(self):
+        objs = [
+            # 진짜 사람 질문
+            {"type": "user", "sessionId": "main", "timestamp": "2026-04-01T08:00:00.000Z",
+             "cwd": "/p/app", "message": {"role": "user", "content": "real human question here"}},
+            # 서브에이전트 턴(isSidechain) → 제외
+            {"type": "user", "sessionId": "sub", "isSidechain": True,
+             "timestamp": "2026-04-01T08:01:00.000Z", "cwd": "/p/app",
+             "message": {"role": "user", "content": "subagent task prompt dropped"}},
+            # 워크플로/에이전트 턴(agentId) → 제외
+            {"type": "user", "sessionId": "sub2", "agentId": "a1",
+             "timestamp": "2026-04-01T08:02:00.000Z", "cwd": "/p/app",
+             "message": {"role": "user", "content": "workflow agent prompt dropped"}},
+            # 주입 노이즈(claude-mem) → 제외
+            {"type": "user", "sessionId": "main", "timestamp": "2026-04-01T08:03:00.000Z",
+             "cwd": "/p/app", "message": {"role": "user", "content": "Hello memory agent, continuing"}},
+        ]
+        path = self._write(objs)
+        try:
+            a = ClaudeAdapter()
+            recs = list(a.iter_records_from_file(path))
+            self.assertEqual([r.text for r in recs], ["real human question here"])
+            self.assertEqual(a.stats["scanned"], 4)
+            self.assertEqual(a.stats["dropped_subagent"], 2)
+            self.assertEqual(a.stats["dropped_noise"], 1)
+            self.assertEqual(a.stats["kept"], 1)
+        finally:
+            os.unlink(path)

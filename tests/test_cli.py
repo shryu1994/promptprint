@@ -124,7 +124,7 @@ class CliMainTest(unittest.TestCase):
             captured = buf.getvalue()
         self.assertEqual(ret, 0)
         self.assertIn("로그를 스캔하는 중", captured)
-        self.assertIn("발견", captured)
+        self.assertIn("사람 질문", captured)     # 신뢰 영수증 라인(스캔→기계 제외→사람 질문)
         self.assertIn("집계하는 중", captured)
         self.assertIn("집계 완료", captured)
 

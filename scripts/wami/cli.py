@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+from collections import Counter
 from typing import Dict, List, Optional
 
 from wami.extract import extract_records
@@ -11,6 +12,36 @@ from wami.insights import validate_insights
 from wami.render import build_report_html
 from wami.delta import build_delta
 from wami.journal import read_journal, previous_entry, upsert_journal, journal_entry, followup
+
+
+def build_scan_receipt(scan: Counter) -> dict:
+    """신뢰 영수증: 스캔한 블록 중 얼마를 기계/주입으로 걸러내고 사람 질문만 남겼는지.
+
+    환경마다 자동화(서브에이전트·claude-mem·반복 프롬프트) 양이 달라 분석 입력의
+    품질이 달라진다 — 그 사실을 *숨기지 않고 수치로 노출*해 사용자가 리포트를
+    믿어도 되는지 스스로 판단하게 한다(이 도구의 핵심 가치=신뢰)."""
+    scanned = scan.get("scanned", 0)
+    kept = scan.get("kept", 0)
+    filtered = max(scanned - kept, 0)
+    ratio = round(filtered / scanned, 3) if scanned else 0.0
+    if ratio >= 0.5:
+        note = (f"입력의 {round(ratio * 100)}%가 기계/주입(서브에이전트·claude-mem·반복 프롬프트)으로 "
+                f"걸러졌습니다 — 자동화가 많은 환경입니다. 남은 사람 질문만 분석합니다.")
+    elif ratio > 0:
+        note = f"입력의 {round(ratio * 100)}%를 기계/주입으로 걸러내고 사람 질문만 분석합니다."
+    else:
+        note = "걸러낼 기계/주입 트래픽이 없었습니다."
+    return {
+        "scanned_blocks": scanned,
+        "kept_questions": kept,
+        "filtered": filtered,
+        "machine_ratio": ratio,
+        "dropped_noise": scan.get("dropped_noise", 0),
+        "dropped_subagent": scan.get("dropped_subagent", 0),
+        "dropped_duplicate": scan.get("dropped_duplicate", 0),
+        "dropped_dedup": scan.get("dropped_dedup", 0),
+        "note": note,
+    }
 
 
 def run_aggregate(roots_by_tool: Optional[Dict[str, List[str]]], out_path: str,
@@ -104,9 +135,12 @@ def main(argv=None):
 
         # Stage 1: extract
         print("로그를 스캔하는 중…", file=sys.stderr)
-        records = extract_records(roots)
+        scan = Counter()
+        records = extract_records(roots, stats_out=scan)
+        receipt = build_scan_receipt(scan)
         n = len(records)
-        print(f"질문 {n}개 발견 — 분석 준비 중…", file=sys.stderr)
+        print(f"  스캔 {receipt['scanned_blocks']}블록 · 기계/주입 {round(receipt['machine_ratio'] * 100)}% 제외 → 사람 질문 {n}개",
+              file=sys.stderr)
 
         # Graceful empty handling
         if n == 0:
@@ -120,6 +154,7 @@ def main(argv=None):
             # Still write an aggregates.json with total_questions:0 so downstream tools
             # don't break, but clearly report nothing was found.
             agg = build_aggregates(records, args.template)
+            agg["meta"]["scan"] = receipt
             os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
             with open(args.out, "w", encoding="utf-8") as fh:
                 json.dump(agg, fh, ensure_ascii=False, indent=2, sort_keys=True)
@@ -129,6 +164,7 @@ def main(argv=None):
         # Stage 2: build aggregates
         print("집계하는 중…", file=sys.stderr)
         agg = build_aggregates(records, args.template)
+        agg["meta"]["scan"] = receipt        # 신뢰 영수증을 meta에 박는다(렌더·해석이 노출)
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         with open(args.out, "w", encoding="utf-8") as fh:
             json.dump(agg, fh, ensure_ascii=False, indent=2, sort_keys=True)
@@ -149,8 +185,10 @@ def main(argv=None):
         if err:
             return err
         print("로그를 스캔하는 중…", file=sys.stderr)
-        records = extract_records(roots)
+        scan = Counter()
+        records = extract_records(roots, stats_out=scan)
         d = build_delta(records, window_days=args.window, as_of=args.as_of)
+        d["scan"] = build_scan_receipt(scan)   # 신뢰 영수증(기계/주입 제외율)
         if not args.no_journal and not d.get("empty"):
             try:
                 journal = read_journal(args.journal)
@@ -167,6 +205,10 @@ def main(argv=None):
             print("로그를 찾지 못해 델타를 계산할 수 없습니다.", file=sys.stderr)
             print(f"빈 델타 저장 → {args.out}", file=sys.stderr)
             return 0
+        sc = d["scan"]
+        print(f"  신뢰 영수증: 스캔 {sc['scanned_blocks']}블록 · 기계/주입 {round(sc['machine_ratio'] * 100)}% 제외 "
+              f"(서브에이전트 {sc['dropped_subagent']} · 주입 {sc['dropped_noise']} · 반복 {sc['dropped_duplicate']}) "
+              f"→ 사람 질문 {sc['kept_questions']}", file=sys.stderr)
         r, pr = d["recent"], d["prior"]
         print(f"델타 저장 → {args.out}  (기준일 {d['as_of']}, 윈도우 {d['window_days']}일)", file=sys.stderr)
         print(f"  최근 {r['total']}개 vs 직전 {pr['total']}개 질문 · 세션당 {r['q_per_session']} vs {pr['q_per_session']}",

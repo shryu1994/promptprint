@@ -94,8 +94,13 @@ class JanAdapter(Adapter):
                 if not isinstance(obj, dict) or obj.get("role") != "user":
                     continue
                 text = _user_text(obj.get("content"))
-                if not text or textutil.is_noise(text):
+                if not text:
                     continue
+                self.stats["scanned"] += 1
+                if textutil.is_noise(text):
+                    self.stats["dropped_noise"] += 1
+                    continue
+                self.stats["kept"] += 1
                 yield QuestionRecord(
                     ts=_epoch_to_iso(obj.get("created_at")),
                     tool=self.tool,

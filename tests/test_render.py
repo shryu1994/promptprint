@@ -19,6 +19,39 @@ def _load(name):
         return json.load(fh)
 
 
+class ScanReceiptRenderTest(unittest.TestCase):
+    """신뢰 영수증(meta.scan)이 리포트에 *보이게* 렌더되는지 — 정직성을 표면으로."""
+
+    def _agg_with_scan(self, ratio=0.82):
+        agg = _load("aggregates_sample.json")
+        agg["meta"]["scan"] = {
+            "scanned_blocks": 27486, "kept_questions": 4996,
+            "machine_ratio": ratio, "dropped_subagent": 3115,
+            "dropped_noise": 18804, "dropped_duplicate": 130,
+            "note": "걸러냄",
+        }
+        return agg
+
+    # 렌더된 요소 마커(CSS의 `.scan-receipt{` 정의와 구분 — 실제 출력에만 나옴)
+    MARK = 'class="scan-receipt anim-fadeup'
+
+    def test_receipt_shown_when_machine_filtered(self):
+        html = build_report_html(_load("insights_sample.json"), self._agg_with_scan())
+        self.assertIn(self.MARK, html)
+        self.assertIn("82%", html)
+        self.assertIn("27,486", html)   # scanned blocks, 천단위 포맷
+
+    def test_receipt_absent_when_no_scan(self):
+        agg = _load("aggregates_sample.json")
+        agg["meta"].pop("scan", None)
+        html = build_report_html(_load("insights_sample.json"), agg)
+        self.assertNotIn(self.MARK, html)
+
+    def test_receipt_absent_when_zero_ratio(self):
+        html = build_report_html(_load("insights_sample.json"), self._agg_with_scan(ratio=0.0))
+        self.assertNotIn(self.MARK, html)
+
+
 class RenderTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

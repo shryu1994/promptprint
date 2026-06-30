@@ -111,8 +111,13 @@ class CodexAdapter(Adapter):
             if obj.get("type") == "session_meta":
                 continue
             text = _user_text_from_payload(payload)
-            if text is None or textutil.is_noise(text):
+            if text is None:
                 continue
+            self.stats["scanned"] += 1
+            if textutil.is_noise(text):
+                self.stats["dropped_noise"] += 1
+                continue
+            self.stats["kept"] += 1
             ts = textutil.norm_ts(obj.get("timestamp"))
             yield QuestionRecord(
                 ts=ts,

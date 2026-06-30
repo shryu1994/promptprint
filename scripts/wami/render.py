@@ -60,6 +60,8 @@ LABELS = {
         "trust_texts_removed": "원문 질문 제거",
         "trust_projects_anon": "프로젝트명 익명화",
         "trust_no_network":    "네트워크 0",
+        "scan_prefix":         "스캔 영수증",
+        "scan_body":           "{scanned}블록 → 기계·주입 {pct}% 제외 → 분석 {kept}",
     },
     "en": {
         "nav_chart":      "Chart",
@@ -108,6 +110,8 @@ LABELS = {
         "trust_texts_removed": "raw questions removed",
         "trust_projects_anon": "project names anonymized",
         "trust_no_network":    "zero network",
+        "scan_prefix":         "Scan receipt",
+        "scan_body":           "{scanned} blocks → {pct}% machine/injected removed → {kept} analyzed",
     },
 }
 
@@ -383,6 +387,29 @@ def _confidence_badge(meta: dict, conf_prefix: str) -> str:
     )
 
 
+def _scan_receipt_html(scan: dict, L=None) -> str:
+    """스캔 영수증 — 입력의 몇 %가 기계/주입이라 걸러졌는지 *숨기지 않고* 노출한다.
+
+    환경마다 자동화(서브에이전트·claude-mem·반복 프롬프트) 양이 달라 분석 입력의
+    품질이 달라진다 — hero 큰 숫자(분석한 사람 질문) 바로 아래 이 수치를 둬,
+    "이 숫자는 기계 N%를 걸러낸 진짜 질문"임을 보이고 신뢰를 사용자가 판단하게 한다.
+    걸러낼 게 없으면(personal·자동화 적은 환경) 표시하지 않는다."""
+    L = L or LABELS["ko"]
+    s = scan or {}
+    scanned = s.get("scanned_blocks", 0)
+    pct = round(s.get("machine_ratio", 0) * 100)
+    if not scanned or pct <= 0:
+        return ""
+    body = L.get("scan_body", "{scanned} blocks → {pct}% machine/injected removed → {kept} analyzed").format(
+        scanned=_fmt_int(scanned), pct=pct, kept=_fmt_int(s.get("kept_questions", 0)))
+    prefix = _esc(L.get("scan_prefix", "Scan receipt"))
+    return (
+        f'<div class="scan-receipt anim-fadeup d6" role="status">'
+        f'<span class="scan-prefix">{prefix}:</span> {_esc(body)}'
+        f'</div>'
+    )
+
+
 # ── month span helper ─────────────────────────────────────────────────────────
 
 def _month_span(dr, months_unit="개월") -> str:
@@ -449,6 +476,11 @@ body{font-family:Georgia,'Iowan Old Style',serif;background:var(--parchment);col
 .hero-meta{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink-muted);
   letter-spacing:.08em;display:flex;gap:32px;flex-wrap:wrap;margin-top:48px}
 .hero-meta span{color:var(--brass)}
+
+/* ── SCAN RECEIPT (입력 품질 정직 노출) ── */
+.scan-receipt{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--ink-muted);
+  letter-spacing:.04em;line-height:1.6;margin-top:16px;max-width:640px}
+.scan-receipt .scan-prefix{color:var(--brass);font-weight:700;text-transform:uppercase;letter-spacing:.12em}
 
 /* ── CONFIDENCE BADGE ── */
 .confidence-badge{display:inline-flex;gap:6px;align-items:center;
@@ -769,6 +801,9 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
     # ── confidence badge ───────────────────────────────────────────────────────
     conf_badge = _confidence_badge(meta, L.get("conf_prefix", "신뢰도"))
 
+    # ── scan receipt (입력의 기계/주입 제외율 — 정직성 표면) ──────────────────────
+    scan_receipt_html = _scan_receipt_html(meta.get("scan", {}), L)
+
     # ── surge chart ────────────────────────────────────────────────────────────
     surge_html = _surge_chart_html(
         activity.get("by_month", {}),
@@ -850,6 +885,7 @@ def build_report_html(insights: dict, aggregates: dict, title: str = "Promptprin
             'style="animation:lineGrow .8s .7s cubic-bezier(.16,1,.3,1) both;"></div>\n'
             f'  <p class="hero-summary anim-fadeup d5">{_esc(insights.get("summary",""))}</p>\n'
             f'  <div class="hero-meta anim-fadeup d6">{hero_meta_html}</div>\n'
+            f'  {scan_receipt_html}\n'
             f'  {trust_receipt_html}\n'
             '</div>\n'
             '</section>\n'

@@ -76,7 +76,10 @@ def make_text(mi, i):
         return EARLY[i % len(EARLY)].format(t=EARLY_T[i % len(EARLY_T)])
     if ph == "mid":
         return MID[i % len(MID)].format(a=MID_A[i % len(MID_A)], b=MID_B[i % len(MID_B)], p=p)
-    return LATE[i % len(LATE)].format(a=LATE_A[i % len(LATE_A)], b=LATE_B[i % len(LATE_B)], p=p)
+    base = LATE[i % len(LATE)].format(a=LATE_A[i % len(LATE_A)], b=LATE_B[i % len(LATE_B)], p=p)
+    # 각 후기 질문에 고유 맥락을 붙여 실제처럼 서로 다르게 만든다(합성 데이터의 비현실적
+    # 완전중복 방지 — 신호어·코드펜스 없어 metaskill·code_block 집계는 불변).
+    return f"{base}\n(context: request batch {i})"
 
 
 def main():

@@ -37,6 +37,27 @@ class TextUtilTest(unittest.TestCase):
         self.assertTrue(T.is_noise("<subagent_notification>running</subagent_notification>"))
         self.assertTrue(T.is_noise("<task>some system task</task>"))
 
+    def test_is_noise_injected_agents(self):
+        """실데이터에서 확인된 claude-mem·스킬·훅·요약 주입(user 턴의 ~50%)을 거른다."""
+        # claude-mem 주입
+        self.assertTrue(T.is_noise("Hello memory agent, you are continuing the session"))
+        self.assertTrue(T.is_noise("<observed_from_primary_session>\n  <what>"))
+        self.assertTrue(T.is_noise("--- MODE SWITCH: PROGRESS SUMMARY --- ⚠️"))
+        self.assertTrue(T.is_noise("You are a Claude-Mem, a specialized observation agent"))
+        self.assertTrue(T.is_noise("You are Claude-Mem, an agent"))
+        self.assertTrue(T.is_noise("You are extracting a structured summary of the session"))
+        # Claude Code 시스템/스킬/훅 주입
+        self.assertTrue(T.is_noise("Base directory for this skill: /Users/x/skill"))
+        self.assertTrue(T.is_noise("This session is being continued from a previous conversation"))
+        self.assertTrue(T.is_noise("Continue from where you left off."))
+        self.assertTrue(T.is_noise("[Your previous response had no visible output"))
+        self.assertTrue(T.is_noise("Stop hook feedback: You MUST call the tool"))
+        self.assertTrue(T.is_noise("A session-scoped Stop hook is now active with"))
+        # false-positive 방지: 본문에 들어간 진짜 질문은 노이즈 아님(startswith 만 검사)
+        self.assertFalse(T.is_noise("how do I build a memory agent in python?"))
+        self.assertFalse(T.is_noise("이 claude-mem 플러그인 구조 설명해줘"))
+        self.assertFalse(T.is_noise("이 Stop hook 어떻게 만들어?"))
+
     def test_has_code_block(self):
         self.assertTrue(T.has_code_block("see this:\n```py\nx=1\n```"))
         self.assertFalse(T.has_code_block("no code here"))
