@@ -1,7 +1,7 @@
 {
   "name": "promptprint",
   "description": "Analyzes the questions you ask your AI coding agents 100% locally and reports how your questioning skill has grown over time.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": { "name": "shryu" },
   "homepage": "https://github.com/shryu1994/promptprint",
   "repository": "https://github.com/shryu1994/promptprint",

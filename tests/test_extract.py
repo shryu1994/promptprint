@@ -3,7 +3,7 @@ import unittest
 from collections import Counter
 import tests.conftest_path  # noqa: F401
 from wami.adapters.base import Adapter
-from wami.extract import extract_records, _collapse_programmatic
+from wami.extract import extract_records, _collapse_programmatic, _drop_oversized, OVERSIZE_LEN
 from wami.model import QuestionRecord
 
 FIXDIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -76,3 +76,23 @@ class CollapseProgrammaticTest(unittest.TestCase):
         out = _collapse_programmatic(recs, stats)
         self.assertEqual(len(out), 4)
         self.assertEqual(stats["dropped_duplicate"], 0)
+
+
+class DropOversizedTest(unittest.TestCase):
+    """초대형 블록(사람이 타이핑 안 하는 길이 — 코드리뷰·시큐리티리뷰가 레포 전체를
+    쏟아낸 툴 덤프)은 사람 질문이 아니므로 제거. 82% 필터가 놓친 잔여 기계 트래픽."""
+
+    def test_oversized_dropped_normal_kept(self):
+        recs = [_rec("x" * (OVERSIZE_LEN + 1), "big"),   # 툴 덤프 → 제거
+                _rec("normal human question about deploy", "ok")]
+        stats = Counter()
+        out = _drop_oversized(recs, stats)
+        self.assertEqual([r.session_id for r in out], ["ok"])
+        self.assertEqual(stats["dropped_oversized"], 1)
+
+    def test_at_threshold_kept(self):
+        recs = [_rec("x" * OVERSIZE_LEN, "edge")]        # 경계값(==)은 보존
+        stats = Counter()
+        out = _drop_oversized(recs, stats)
+        self.assertEqual(len(out), 1)
+        self.assertEqual(stats["dropped_oversized"], 0)

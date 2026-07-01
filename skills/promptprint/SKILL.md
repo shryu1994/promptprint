@@ -60,9 +60,9 @@ description: >-
 
 2. `$PWD/delta.json`을 읽고, **변한 것 + 처방을 앞세워** 짧게 서술합니다(회고 아님, *코치* 톤):
    - **신뢰 영수증 먼저(`scan`):** 서술 전에 `scan.machine_ratio`를 확인하라. 자동화-heavy 환경(서브에이전트·claude-mem·eval/RAG 앱)은 로그의 상당 부분이 *사람 질문이 아니라 주입·기계 트래픽*이다 — 도구가 이미 그걸 걸러내고 `scan`에 영수증을 남긴다(`scanned_blocks`→`kept_questions`, 제외 내역 `dropped_subagent`·`dropped_noise`·`dropped_duplicate`). **`machine_ratio`가 높으면(예: ≥0.5) 한 줄로 정직하게 알려라**("스캔 N블록 중 X%가 기계/주입이라 걸렀고, 아래는 남은 사람 질문만"). 이건 숨기는 게 아니라 *환경 의존성을 투명하게* 드러내 사용자가 수치를 믿을지 판단하게 하는 것(이 도구의 핵심=신뢰). **단 82%를 걸러도 잔여 기계(이메일 배치·보안리뷰 등)는 남을 수 있으니 "완전히 정제됨"으로 과장 금지** — 영수증은 *완벽 분류*가 아니라 *정직한 공개*다.
-   - **0) 지난 점검 이후(있으면 *맨 먼저*):** `prescription_followup`이 있으면 그걸 첫 줄에 — "지난 점검(`since`) 이후: verify 8%→17%(+9pp 먹힘) / 'deploy' 반복 4→1(노역 줄음)". `metaskill_moves`·`metric_moves`·`toil_followup`을 *네가 지난번 짚은 것의 결과*로 읽어라(코치의 후속점검). **안 움직였으면 "아직 안 움직였다"고 정직히**, 방향 모호한 지표(one_shot_rate 등)는 좋다/나쁘다 단정 금지. ⚠️ `toil_followup`에서 `still_tracked:false`(= `now_recent_count:null`)인 항목은 *그 반복이 사라졌다는 뜻이 아니라* 이번 top-N 후보 밖이라는 뜻일 뿐 — **절대 "→0/완전 제거"로 자랑하지 말고** "더 이상 상위 반복 후보 아님(현재 카운트 미측정)"으로만 서술하라. '노역 줄음'은 `still_tracked:true`이고 `change<0`일 때만. `prescription_followup`이 없으면(첫 점검) 이 블록은 건너뛴다.
+   - **0) 지난 점검 이후(있으면 *맨 먼저*):** `prescription_followup`이 있으면 그걸 첫 줄에 — "지난 점검(`since`) 이후: verify 8%→17%(+9pp 먹힘)". `metaskill_moves`·`metric_moves`(지휘 신호 변화)만 *네가 지난번 짚은 것의 결과*로 읽어라(코치의 후속점검). **안 움직였으면 "아직 안 움직였다"고 정직히**, 방향 모호한 지표(one_shot_rate 등)는 좋다/나쁘다 단정 금지. ⚠️ `toil_followup`(반복 작업 추적)은 **무시하라** — 반복 작업 처방은 접었다(질문 로그로 신뢰성 있게 못 뽑음). `prescription_followup`이 없으면(첫 점검) 이 블록은 건너뛴다.
    - **무엇이 움직였나(길이에 강건):** `deltas.metaskill_rate`(verify·critique·delegate·counter, per-message 비율 변화 pp)와 `deltas.code_block_rate`·`deltas.q_per_session`·`deltas.one_shot_rate`(원샷=한 번에 끝낸 세션 비율, 세션당 왕복수와 짝). **"verify가 +18%p"처럼 *비율*로 말하고, 질문 수 폭증(`deltas.total`)으로 성장을 단정하지 마라 — 비율이 진짜 신호다.** ⚠️ 왕복수↓·원샷률↑이 늘 "좋아짐"은 아니다(복잡한 작업은 본래 왕복이 많다) — 추세로만 말하고 단정 금지.
-   - **다음에 뭘 할까(처방, 헤드라인):** `skill_candidates`(최근 반복·재설명 노역)에서 1~2개 → "X를 N번 재설명 중 → `/skill-creator`로 스킬화"처럼 *데이터 정박·실행가능*하게. 처방을 앞에, 회고는 곁가지.
+   - **다음에 뭘 할까(처방, 헤드라인):** `deltas.metaskill_rate`에서 가장 낮거나 아쉬운 지휘 신호 하나를 골라 *네가 바꿀 수 있는 행동* 하나로 처방하라 — 예: "verify가 4%로 낮다 → 다음엔 AI 답에 '왜 이렇게 했어?'를 한 번 더 물어봐". 처방을 앞에, 회고는 곁가지. ⚠️ **"반복 작업을 스킬로 만들어라"류 처방은 하지 마라** — 질문 로그만으론 진짜 반복 작업을 신뢰성 있게 못 뽑는다(대부분 도구·앱·eval이 남긴 기계 트래픽이라, 실측으로 확인됨). 그 처방은 정직하게 접었다. 이 도구가 정직하게 재는 건 *네가 AI를 어떻게 부리는가*(따지기·되묻기·검증)뿐이다.
    - **새/사라진 관심:** `new_topics`·`dropped_topics` 한 줄.
    - ⚠️ `recent.total`·`prior.total`이 크게 불균형이면(휴지기/폭증) 비율만 신뢰하고 절대수 비교는 신중히. 데이터 적으면 과장 금지(신뢰성이 이 도구의 핵심).
    - 사용자 언어로. "지난 N일 동안 너는 ~를 더/덜 했고, 다음 한 가지는 ~." 한 화면에 끝나게.
@@ -86,17 +86,9 @@ description: >-
 - **단정 아닌 제안 톤.** 데이터가 빈약하면 신중히, 억지 제안 금지.
 - 약점(낮은 차원)과 기회(새 주제·다음 단계) 양쪽에서 뽑되, 잔소리가 되지 않게 2~4개로 압축.
 
-## 스킬 제안 (skill_suggestions) — 행동: "더 묻지 말고 스킬로 만들어라" (선택)
+## 스킬 제안 (skill_suggestions) — 정직하게 접음
 
-회고(과거 분석)·처방(다음 항로) 다음의 마지막 조각 — **반복·재설명하는 작업을 `/skill-creator`로 스킬화**하라고 제안해 루프를 닫습니다. `aggregates.skill_candidates.candidates`(L3가 결정적으로 탐지한 상위 후보)를 읽어 **0~3개**를 만듭니다. 각 항목 = `{name, why, evidence, est_savings?, seed}`:
-
-- 후보 = **반복은 많은데 졸업하지 않고(계속 재등장) 매번 같은 맥락을 재설명**하는 term. 근거 필드: `count`(반복), `avg_len`(재설명 비용 = 스킬화 ROI 핵심), `months_active`(지속), `recent_count`(최근성).
-- **학습 중(곧 졸업할 주제)과 반복 노역을 구분**하라 — L3가 졸업 term은 이미 뺐지만, 빈약한 데이터면 무리하지 말고 **0개로 두라**(억지 제안 금지). `confidence_tier`가 `snapshot`이면 특히 보수적으로.
-- 같은 프롬프트에 공기하는 여러 term은 **하나의 작업으로 묶어** 명명하라(L3는 단일 term 단위라 동점이 생긴다).
-- `name`: 만들 스킬의 짧은 이름. `why`: **실측 수치에 정박**(예: "deploy를 4회 반복, 평균 143자로 매번 맥락 재설정"). `evidence`: candidate의 측정값(count·avg_len·months) 인용.
-- `est_savings`(선택): **반드시 추정으로 명시 + 가정 노출**(예: "추정: 회당 ~140자 재설명 제거 × 4회 · 가정 — 질문당 1회 호출로 대체"). **조작된 ROI 금지** — 실측 N·M에만 정박하고 추정은 추정이라고 밝혀라(피드백 #1의 교훈: 과장 지표 금지).
-- `seed`: 바로 `/skill-creator`에 넣을 한 단락 — 스킬의 목적·입력·출력 + `samples.stratified`에서 고른 대표 예시 2~3개.
-- ⚠️ **corporate/social이면 `seed`·`why`·`evidence`에 원문 질문을 인용하지 마라** — 작업을 추상적으로 기술(집계가 이미 원문을 제거했고 렌더가 인용을 한 번 더 거른다). **corporate에서는 이 섹션이 헤드라인(팀 능률 ROI)** 이니 절감 추정을 앞세우되 정직하게.
+이 섹션(반복 작업 → `/skill-creator`로 스킬화 제안)은 **제거했다.** 질문 로그만으로는 진짜 반복 작업을 신뢰성 있게 탐지할 수 없다는 걸 실측으로 확인했다 — 로그의 대부분은 도구·RAG·eval 앱이 남긴 기계 트래픽이고, 사용자의 실제 질문은 짧은 지휘("가자"·"왜?"·"다음")라 '작업'을 담지 않는다(작업 내용은 AI 답변·코드에 있고 이 도구는 질문만 읽는다). **`skill_suggestions`는 생성하지 마라**(출력 스키마상 선택 — 비워두면 된다). 이 도구가 정직하게 재는 건 *네가 AI를 어떻게 부리는가*(따지기·되묻기·검증)다.
 
 ## 정박 규칙 (중요)
 
@@ -146,15 +138,11 @@ description: >-
   ],
   "next_bearings": [                       // 2~4개, 데이터 정박 개선 제안
     { "title": "제안 제목", "why": "근거(지표/패턴 인용)", "how": "구체적 행동" }
-  ],
-  "skill_suggestions": [                    // 선택, 0~3개 — 반복 작업의 스킬화 제안(기둥3)
-    { "name": "스킬 이름", "why": "실측 정박", "evidence": ["count=4 · avg_len=143자 …"],
-      "est_savings": "추정 … (가정 노출)", "seed": "/skill-creator 에 넣을 한 단락" }
   ]
 }
 ```
 
-규칙: `dimensions`는 위 6개 키만(추가/누락 불가). 각 dimension은 비어있지 않은 `narrative` + 1개 이상의 비어있지 않은 `evidence`. `chapters`는 1개 이상. `cards`는 3~5개. `next_bearings`는 2~4개(각 `title`·`why`·`how` 모두 비어있지 않게). `skill_suggestions`는 **선택(0~3개)** — 있으면 각 `name`·`why`·`seed`는 비어있지 않게, `evidence`는 1개 이상, `est_savings`는 있으면 비어있지 않게.
+규칙: `dimensions`는 위 6개 키만(추가/누락 불가). 각 dimension은 비어있지 않은 `narrative` + 1개 이상의 비어있지 않은 `evidence`. `chapters`는 1개 이상. `cards`는 3~5개. `next_bearings`는 2~4개(각 `title`·`why`·`how` 모두 비어있지 않게). (`skill_suggestions`는 제거됨 — 위 "스킬 제안" 섹션 참고. 생성하지 마라.)
 
 ## 민감정보 주의
 

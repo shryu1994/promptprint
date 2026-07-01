@@ -40,6 +40,7 @@ def build_scan_receipt(scan: Counter) -> dict:
         "dropped_subagent": scan.get("dropped_subagent", 0),
         "dropped_duplicate": scan.get("dropped_duplicate", 0),
         "dropped_dedup": scan.get("dropped_dedup", 0),
+        "dropped_oversized": scan.get("dropped_oversized", 0),
         "note": note,
     }
 
@@ -215,7 +216,6 @@ def main(argv=None):
               file=sys.stderr)
         print(f"  원샷(한 번에 끝낸 세션) {round(r['one_shot_rate'] * 100)}% vs {round(pr['one_shot_rate'] * 100)}%",
               file=sys.stderr)
-        print(f"  스킬화 후보(반복 노역) {len(d['skill_candidates'])}건", file=sys.stderr)
         if d.get("prescription_followup"):
             print(f"  지난 점검({d['prescription_followup']['since']}) 대비 움직임·노역 후속 포함 ✓",
                   file=sys.stderr)

@@ -476,3 +476,37 @@ class AggregateSkillCandidatesTest(unittest.TestCase):
     def test_empty_records(self):
         agg = build_aggregates([])
         self.assertEqual(agg["skill_candidates"]["candidates"], [])
+
+
+class AggregateProjectSpreadFilterTest(unittest.TestCase):
+    """generic 어휘(여러 프로젝트에 두루 나오는 흔한 단어)는 '반복 작업'이 아니라
+    잔여 기계/공통어 노이즈 → 프로젝트가 충분할 때 project-spread 로 제외.
+    집중된(소수 프로젝트) 어휘는 진짜 반복 작업으로 보고 남긴다."""
+
+    def _recs_many_projects(self):
+        recs = []
+        # genericword: 12개 프로젝트 전부에 등장(spread 100%) → generic → 제외.
+        for i in range(12):
+            recs.append(mk(f"2026-06-0{(i % 9) + 1}T10:00:00+00:00", "claude",
+                           f"genericword uniquealpha{i}beta padding longer body text",
+                           sid=f"g{i}", proj=f"proj{i}", turn=0))
+        # refusalcheck: 2개 프로젝트에만 집중(spread 17%) → 진짜 반복 작업 → 남김.
+        for i in range(4):
+            recs.append(mk(f"2026-06-1{i}T10:00:00+00:00", "claude",
+                           f"refusalcheck concentrated{i}word taxonomy padding longer body",
+                           sid=f"r{i}", proj=f"proj{i % 2}", turn=0))
+        return recs
+
+    def test_generic_spread_term_excluded(self):
+        cands = build_aggregates(self._recs_many_projects())["skill_candidates"]["candidates"]
+        by = {c["term"]: c for c in cands}
+        self.assertNotIn("genericword", by)   # 12/12 프로젝트 = generic → 제외
+        self.assertIn("refusalcheck", by)     # 2/12 프로젝트 = 집중 → 남김
+
+    def test_spread_filter_off_for_small_corpus(self):
+        # 프로젝트가 적으면 generic/집중 구분이 불가능 → 필터 미적용(term 보존).
+        recs = [mk(f"2026-06-1{i}T10:00:00+00:00", "claude",
+                   f"commonterm distinct{i}word padding longer body text here",
+                   sid=f"c{i}", proj=f"p{i % 2}", turn=0) for i in range(4)]
+        by = {c["term"]: c for c in build_aggregates(recs)["skill_candidates"]["candidates"]}
+        self.assertIn("commonterm", by)       # 프로젝트 2개(<8) → spread 필터 off

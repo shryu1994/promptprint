@@ -14,6 +14,18 @@ from wami.model import QuestionRecord
 DUP_MIN_LEN = 280     # 이 길이 이상이고
 DUP_MIN_COUNT = 5     # 이 횟수 이상 똑같이 반복되면 제거
 
+# 초대형 블록: 사람이 한 번에 타이핑하지 않는 길이(코드리뷰·시큐리티리뷰가 레포
+# 전체 diff 를 쏟아낸 툴 덤프 등). p99 가 ~6만자, 이 덤프는 40만자+ — 사람 질문이
+# 아니라 잔여 기계 트래픽이라 후보·통계를 오염시킨다(흔한 단어 count 폭증). 제거한다.
+OVERSIZE_LEN = 50000
+
+
+def _drop_oversized(records: List[QuestionRecord], scan: Counter) -> List[QuestionRecord]:
+    """OVERSIZE_LEN 초과 블록(툴 덤프)을 제거하고 제거 수를 scan 에 기록한다."""
+    kept = [r for r in records if len(r.text) <= OVERSIZE_LEN]
+    scan["dropped_oversized"] += len(records) - len(kept)
+    return kept
+
 
 def _collapse_programmatic(records: List[QuestionRecord],
                            stats: Optional[Counter] = None) -> List[QuestionRecord]:
@@ -67,6 +79,9 @@ def extract_records(roots_by_tool: Optional[Dict[str, List[str]]] = None,
 
     # 프로그램적 트래픽(긴 동일 텍스트 고빈도 반복) 제거.
     deduped = _collapse_programmatic(deduped, scan)
+
+    # 초대형 툴 덤프(코드리뷰·시큐리티리뷰 등 레포 전체 diff) 제거 — 잔여 기계 트래픽.
+    deduped = _drop_oversized(deduped, scan)
 
     # 어댑터의 잠정 kept를 최종 kept로 덮어쓴다(dedup·중복제거 반영).
     scan["kept"] = len(deduped)

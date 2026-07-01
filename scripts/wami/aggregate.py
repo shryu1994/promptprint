@@ -214,6 +214,12 @@ def _mastery(records: List[QuestionRecord]) -> dict:
 SKILL_MIN_COUNT = 3      # 후보 최소 반복 빈도(노이즈 차단)
 SKILL_TOP_N = 5          # 상위 N개만 제안(전부 스킬화 권유 금지)
 SKILL_RECENT_MONTHS = 2  # "최근" 윈도 = 데이터 마지막 N개월
+# generic 어휘 차단: 한 term 이 전체 프로젝트의 이 비율보다 넓게 퍼져 있으면(여러
+# 무관한 프로젝트에 두루) '반복 작업'이 아니라 흔한 공통어·잔여 기계어로 본다
+# (예: text·change·json — 코드리뷰 덤프가 모든 레포에 남겨 count 폭증). 단 프로젝트가
+# 적으면 generic/집중을 못 가르므로 SPREAD_MIN_PROJECTS 이상일 때만 적용.
+SKILL_MAX_PROJECT_SPREAD = 0.20
+SKILL_SPREAD_MIN_PROJECTS = 8
 
 
 def _skill_candidates(records: List[QuestionRecord]) -> dict:
@@ -250,12 +256,17 @@ def _skill_candidates(records: List[QuestionRecord]) -> dict:
         return {"candidates": []}
 
     recent_window = set(sorted(all_months)[-SKILL_RECENT_MONTHS:])
+    num_projects = len({r.project for r in records if r.project})
+    spread_on = num_projects >= SKILL_SPREAD_MIN_PROJECTS
 
     rows = []
     for t, c in count.items():
         if c < SKILL_MIN_COUNT:
             continue
         if last[t] not in recent_window:    # 졸업(최근 재등장 없음) → 제외
+            continue
+        # generic 어휘(여러 무관 프로젝트에 두루) → 반복 작업 아님 → 제외.
+        if spread_on and len(term_projects[t]) / num_projects > SKILL_MAX_PROJECT_SPREAD:
             continue
         avg_len = round(len_sum[t] / c, 1)
         months_active = len(term_month[t])
